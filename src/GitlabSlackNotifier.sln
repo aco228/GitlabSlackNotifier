@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GItlabSlackNotifier.Api", "GItlabSlackNotifier.Api\GItlabSlackNotifier.Api.csproj", "{28521BA2-A000-4EEF-AE6B-B83B4E0022E5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitlabSlackNotifier.Api", "GitlabSlackNotifier.Api\GitlabSlackNotifier.Api.csproj", "{D62CABAF-9D79-4E96-80AD-CA421D1144DD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitlabSlackNotifier.Core", "GitlabSlackNotifier.Core\GitlabSlackNotifier.Core.csproj", "{16339A1F-73A9-4B14-8E14-CD596FDEF973}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -8,9 +10,13 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{28521BA2-A000-4EEF-AE6B-B83B4E0022E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{28521BA2-A000-4EEF-AE6B-B83B4E0022E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{28521BA2-A000-4EEF-AE6B-B83B4E0022E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{28521BA2-A000-4EEF-AE6B-B83B4E0022E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D62CABAF-9D79-4E96-80AD-CA421D1144DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D62CABAF-9D79-4E96-80AD-CA421D1144DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D62CABAF-9D79-4E96-80AD-CA421D1144DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D62CABAF-9D79-4E96-80AD-CA421D1144DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16339A1F-73A9-4B14-8E14-CD596FDEF973}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16339A1F-73A9-4B14-8E14-CD596FDEF973}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16339A1F-73A9-4B14-8E14-CD596FDEF973}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16339A1F-73A9-4B14-8E14-CD596FDEF973}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -298,3 +298,4 @@ src/Likvido.ReleaseGuy.ConsoleTests/*
 
 # Ignore appsettings.Development.json
 src/Likvido.ReleaseGuy.Web/appsettings.Development.json
+deploy/deploy_build.bat

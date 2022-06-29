@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace GItlabSlackNotifier.Api.Controllers;
+namespace GitlabSlackNotifier.Api.Controllers;
 
 [ApiController]
 [Route("[controller]")]
