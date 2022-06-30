@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitlabSlackNotifier.Api", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitlabSlackNotifier.Core", "GitlabSlackNotifier.Core\GitlabSlackNotifier.Core.csproj", "{16339A1F-73A9-4B14-8E14-CD596FDEF973}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitlabSlackNotifier.Core.Tests", "GitlabSlackNotifier.Core.Tests\GitlabSlackNotifier.Core.Tests.csproj", "{CE4B6B72-C002-49EE-B7C3-8BC203F00C37}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{16339A1F-73A9-4B14-8E14-CD596FDEF973}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{16339A1F-73A9-4B14-8E14-CD596FDEF973}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{16339A1F-73A9-4B14-8E14-CD596FDEF973}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE4B6B72-C002-49EE-B7C3-8BC203F00C37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE4B6B72-C002-49EE-B7C3-8BC203F00C37}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE4B6B72-C002-49EE-B7C3-8BC203F00C37}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE4B6B72-C002-49EE-B7C3-8BC203F00C37}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

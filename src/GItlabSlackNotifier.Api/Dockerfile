@@ -10,9 +10,7 @@ WORKDIR /src
 COPY ["GitlabSlackNotifier.Api/GitlabSlackNotifier.Api.csproj", "GitlabSlackNotifier.Api/"]
 COPY ["GitlabSlackNotifier.Core/GitlabSlackNotifier.Core.csproj", "GitlabSlackNotifier.Core/"]
 RUN dotnet restore "GitlabSlackNotifier.Api/GitlabSlackNotifier.Api.csproj"
-
 COPY . .
-
 WORKDIR "/src/GitlabSlackNotifier.Api"
 RUN dotnet build "GitlabSlackNotifier.Api.csproj" -c Release -o /app/build
 
@@ -23,5 +21,7 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 #ENTRYPOINT ["dotnet", "GitlabSlackNotifier.Api.dll"]
+
+CMD "$APP_SETTINGS" > appsettings.Development.json
 
 CMD ASPNETCORE_URLS="http://*:$PORT" dotnet GitlabSlackNotifier.Api.dll

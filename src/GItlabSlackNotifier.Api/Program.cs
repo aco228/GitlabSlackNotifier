@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // builder.Services.AddEndpointsApiExplorer();
 // builder.Services.AddSwaggerGen();
+builder.Services.RegisterConfigurations();
 builder.Services.RegisterSlackServices();
 
 var app = builder.Build();
@@ -19,6 +20,7 @@ var app = builder.Build();
 // app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthorization();
+app.RegisterSlackCommands();
 app.UseEndpoints(endpoints =>
 {
     //endpoints.MapControllerRoute("default", "{controller=Account}/{action=login}/{id?}");

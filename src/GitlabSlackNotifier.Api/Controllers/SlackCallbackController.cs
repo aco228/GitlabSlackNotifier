@@ -1,6 +1,7 @@
 ﻿using GitlabSlackNotifier.Core.Domain;
 using GitlabSlackNotifier.Core.Domain.Slack.ControllerEvents;
 using GitlabSlackNotifier.Core.Services.Slack;
+using GitlabSlackNotifier.Core.Services.Slack.Applications;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
@@ -10,15 +11,16 @@ namespace GitlabSlackNotifier.Api.Controllers;
 public class SlackCallbackController : CallbackControllerBase
 {
     private readonly ISlackMessagingClient _messaging;
-    private readonly string _slackMainChannelId;
+    private readonly ISlackCommandApplicationHandler _commandHandler;
+    private readonly ISlackDefaultChannel _defaultChannel;
     
     public SlackCallbackController(
-        IConfiguration configuration,
-        ISlackMessagingClient messagingClient) 
+        ISlackDefaultChannel slackDefaultChannel,
+        ISlackCommandApplicationHandler slackCommandApplicationHandler) 
         : base("slack-callback-controller")
     {
-        _slackMainChannelId = configuration["Slack:MainChannelId"];
-        _messaging = messagingClient;
+        _commandHandler = slackCommandApplicationHandler;
+        _defaultChannel = slackDefaultChannel;
     }
 
     public IActionResult Index() 
@@ -33,7 +35,7 @@ public class SlackCallbackController : CallbackControllerBase
 
         if (rawRequest.Contains("challenge"))
             return RespondToChallenge(rawRequest);
-
+        
         try
         {
             // Reacts on messages where @ReleaseGuy is mentioned in the message
@@ -41,22 +43,40 @@ public class SlackCallbackController : CallbackControllerBase
             var eventRequest = JsonConvert.DeserializeObject<EventUponMessageRequestModel>(rawRequest);
             if (eventRequest.IsValid())
             {
-                await _messaging.PublishMessage(new ()
+                await _commandHandler.RunCommand(new ()
                 {
-                    ChannelId = eventRequest.Event.Channel,
-                    Thread = eventRequest.Event.ThreadId,
-                    Message = "Hey there :)"
+                    User = eventRequest.Event.User,
+                    MessageThread = eventRequest.Event.ThreadId,
+                    Channel = eventRequest.Event.Channel,
+                    Text = eventRequest.Event.Text,
                 });
             }
             
         }
         catch (Exception ex)
         {
-            await _messaging.PublishMessage(new ()
-            {
-                ChannelId = _slackMainChannelId,
-                Message = "Exception happened: " + Environment.NewLine + ex
-            });
+            await _defaultChannel.SendMessage("Exception happened: " + Environment.NewLine + ex);
+        }
+
+        return Ok();
+    }
+
+    public async Task<IActionResult> Command()
+    {
+        var rawRequest = await ReadBody();
+        if (string.IsNullOrEmpty(rawRequest))
+            return Ok();
+
+        if (rawRequest.Contains("challenge"))
+            return RespondToChallenge(rawRequest);
+
+        try
+        {
+
+        }
+        catch (Exception ex)
+        {
+            
         }
 
         return Ok();

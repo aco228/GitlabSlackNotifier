@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using Aco228.SimpleHttpClient;
+using GitlabSlackNotifier.Core.Infrastructures.Configuration;
 using GitlabSlackNotifier.Core.Services.Slack;
-using Microsoft.Extensions.Configuration;
 
 namespace GitlabSlackNotifier.Core.Infrastructures.Slack;
 
@@ -9,13 +9,13 @@ public class SlackHttpClient : RequestClient, ISlackHttpClient
 {
     const string BASE_URL = "https://slack.com/api/";
     
-    public SlackHttpClient (IConfiguration configuration)
+    public SlackHttpClient (ISlackConfigurationSection slackConfiguration)
     {
-        var oauthToken = configuration["Slack:OAuth"];
-        if (string.IsNullOrEmpty(oauthToken))
+        var oauth = slackConfiguration.GetConfiguration()?.OAuth ?? string.Empty;
+        if (string.IsNullOrEmpty(oauth))
             throw new ArgumentException("Slack OAuth token missing from configuration");
         
-        AddAuthorization(oauthToken);
+        AddAuthorization(oauth);
         SetBaseString(BASE_URL);
     }
 
