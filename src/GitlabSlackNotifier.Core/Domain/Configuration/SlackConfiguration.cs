@@ -14,5 +14,6 @@ public class SlackConfiguration : IConfigurationModel
     public bool AreCriticalPropertiesValid()
         => !string.IsNullOrEmpty(ClientId)
            && !string.IsNullOrEmpty(ClientSecret)
+           && !string.IsNullOrEmpty(MainChannelId)
            && !string.IsNullOrEmpty(OAuth);
 }

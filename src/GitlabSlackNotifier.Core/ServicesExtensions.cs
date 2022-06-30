@@ -1,4 +1,5 @@
 ﻿using GitlabSlackNotifier.Core.Applications.Slack.Commands;
+using GitlabSlackNotifier.Core.Domain.Slack.Application;
 using GitlabSlackNotifier.Core.Infrastructures.Configuration;
 using GitlabSlackNotifier.Core.Infrastructures.Deserializers;
 using GitlabSlackNotifier.Core.Infrastructures.Gitlab;
@@ -42,6 +43,7 @@ public static class ServicesExtensions
 
         service.AddTransient<IHelloSlackCommand, HelloSlackCommand>();
         service.AddTransient<ITestSlackCommand, TestSlackCommand>();
+        service.AddTransient<ISlackTestReadMessagesCommand, SlackTestReadMessagesCommand>();
     }
     
 }

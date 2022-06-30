@@ -1,8 +1,9 @@
 ﻿using GitlabSlackNotifier.Core.Applications.Slack.Commands;
+using GitlabSlackNotifier.Core.Domain.Slack.Application;
 using GitlabSlackNotifier.Core.Services.Slack.Applications;
 using Microsoft.AspNetCore.Builder;
 
-namespace GitlabSlackNotifier.Core.Services;
+namespace GitlabSlackNotifier.Core;
 
 public static class ApplicationExtensions
 {
@@ -14,5 +15,6 @@ public static class ApplicationExtensions
         
         slackCommandHandler.AddCommand(typeof(IHelloSlackCommand));
         slackCommandHandler.AddCommand(typeof(ITestSlackCommand));
+        slackCommandHandler.AddCommand(typeof(ISlackTestReadMessagesCommand));
     }
 }

@@ -13,10 +13,10 @@ public class SlackDefaultChannel : ISlackDefaultChannel
         ISlackMessagingClient messagingClient)
     {
         var configuration = slackConfiguration.GetConfiguration();
-        _defaultChannelId = configuration?.MainChannelId ?? string.Empty;
-        if (string.IsNullOrEmpty(_defaultChannelId))
+        if(configuration == null || !configuration.AreCriticalPropertiesValid())
             throw new ArgumentException("Slack:MainChannelId is not set in appsettings");
 
+        _defaultChannelId = configuration.MainChannelId;
         _messagingClient = messagingClient;
     }
 

@@ -11,11 +11,11 @@ public class SlackHttpClient : RequestClient, ISlackHttpClient
     
     public SlackHttpClient (ISlackConfigurationSection slackConfiguration)
     {
-        var oauth = slackConfiguration.GetConfiguration()?.OAuth ?? string.Empty;
-        if (string.IsNullOrEmpty(oauth))
+        var configuration = slackConfiguration.GetConfiguration();
+        if(configuration == null || !configuration.AreCriticalPropertiesValid())
             throw new ArgumentException("Slack OAuth token missing from configuration");
         
-        AddAuthorization(oauth);
+        AddAuthorization(configuration.OAuth);
         SetBaseString(BASE_URL);
     }
 
