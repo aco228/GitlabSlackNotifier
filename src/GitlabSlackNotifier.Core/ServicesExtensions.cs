@@ -1,9 +1,11 @@
 ﻿using GitlabSlackNotifier.Core.Applications.Slack.Commands;
 using GitlabSlackNotifier.Core.Infrastructures.Configuration;
 using GitlabSlackNotifier.Core.Infrastructures.Deserializers;
+using GitlabSlackNotifier.Core.Infrastructures.Gitlab;
 using GitlabSlackNotifier.Core.Infrastructures.Slack;
 using GitlabSlackNotifier.Core.Services.Configuration;
 using GitlabSlackNotifier.Core.Services.Deserializers;
+using GitlabSlackNotifier.Core.Services.Gitlab;
 using GitlabSlackNotifier.Core.Services.Slack;
 using GitlabSlackNotifier.Core.Services.Slack.Applications;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +23,13 @@ public static class ServicesExtensions
     {
         service.AddTransient<IConfigurationManager, ConfigurationManager>();
         service.AddTransient<ISlackConfigurationSection, SlackConfigurationSection>();
+        service.AddTransient<IGitlabConfigurationSection, GitlabConfigurationSection>();
+    }
+
+    public static void RegisterGitlabServices(this IServiceCollection service)
+    {
+        service.AddSingleton<IGitlabHttpClient, GitlabHttpClient>();
+        service.AddTransient<IGitlabAboutMeService, GitlabAboutMeService>();
     }
 
     public static void RegisterSlackServices(this IServiceCollection service)
@@ -34,4 +43,5 @@ public static class ServicesExtensions
         service.AddTransient<IHelloSlackCommand, HelloSlackCommand>();
         service.AddTransient<ITestSlackCommand, TestSlackCommand>();
     }
+    
 }

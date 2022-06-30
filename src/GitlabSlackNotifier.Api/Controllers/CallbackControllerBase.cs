@@ -58,11 +58,10 @@ public abstract class CallbackControllerBase : ControllerBase
         if (string.IsNullOrEmpty(bodyText))
             return null!;
             
-        
         var sha = bodyText.ToSha256();
         
         // return nothing if we have cached this message previously
-        if (Model.Contains(bodyText))
+        if (Model.Contains(sha))
             return null!;
 
         var callbackMessage = new CallbackMessage

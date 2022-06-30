@@ -8,6 +8,7 @@ builder.Services.AddControllers();
 // builder.Services.AddSwaggerGen();
 builder.Services.RegisterDeserializers();
 builder.Services.RegisterConfigurations();
+builder.Services.RegisterGitlabServices();
 builder.Services.RegisterSlackServices();
 
 var app = builder.Build();

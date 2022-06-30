@@ -9,5 +9,10 @@ public class SlackConfiguration : IConfigurationModel
     public string ClientSecret {get;set;}
     public string SigningSecret {get;set;}
     public string MainChannelId {get;set;}
-    public string OAuth {get;set;}    
+    public string OAuth {get;set;}
+
+    public bool AreCriticalPropertiesValid()
+        => !string.IsNullOrEmpty(ClientId)
+           && !string.IsNullOrEmpty(ClientSecret)
+           && !string.IsNullOrEmpty(OAuth);
 }

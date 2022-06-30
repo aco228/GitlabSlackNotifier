@@ -25,7 +25,7 @@ public class SlackCommandApplicationHandler : ISlackCommandApplicationHandler
         
         var requestText = request.Text.Trim();
         if (!string.IsNullOrEmpty(mention))
-            requestText = requestText.Replace(mention, string.Empty);
+            requestText = requestText.Replace(mention, string.Empty).Trim();
         
         var split = requestText.Split(" ").ToList();
         if (split.Count == 0)
