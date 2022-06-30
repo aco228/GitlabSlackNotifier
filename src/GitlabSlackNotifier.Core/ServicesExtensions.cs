@@ -39,6 +39,7 @@ public static class ServicesExtensions
         service.AddSingleton<ISlackCommandApplicationHandler, SlackCommandApplicationHandler>();
         
         service.AddTransient<ISlackMessagingClient, SlackMessagingClient>();
+        service.AddTransient<ISlackConversationClient, SlackConversationClient>();
         service.AddTransient<ISlackDefaultChannel, SlackDefaultChannel>();
 
         service.AddTransient<IHelloSlackCommand, HelloSlackCommand>();
