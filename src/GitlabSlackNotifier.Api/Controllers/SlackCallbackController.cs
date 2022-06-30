@@ -1,5 +1,7 @@
 ﻿using GitlabSlackNotifier.Core.Domain;
+using GitlabSlackNotifier.Core.Domain.Slack.Application;
 using GitlabSlackNotifier.Core.Domain.Slack.ControllerEvents;
+using GitlabSlackNotifier.Core.Services.Deserializers;
 using GitlabSlackNotifier.Core.Services.Slack;
 using GitlabSlackNotifier.Core.Services.Slack.Applications;
 using Microsoft.AspNetCore.Mvc;
@@ -13,14 +15,17 @@ public class SlackCallbackController : CallbackControllerBase
     private readonly ISlackMessagingClient _messaging;
     private readonly ISlackCommandApplicationHandler _commandHandler;
     private readonly ISlackDefaultChannel _defaultChannel;
+    private readonly IQueryDeserializer _queryDeserializer;
     
     public SlackCallbackController(
         ISlackDefaultChannel slackDefaultChannel,
-        ISlackCommandApplicationHandler slackCommandApplicationHandler) 
+        ISlackCommandApplicationHandler slackCommandApplicationHandler,
+        IQueryDeserializer queryDeserializer) 
         : base("slack-callback-controller")
     {
         _commandHandler = slackCommandApplicationHandler;
         _defaultChannel = slackDefaultChannel;
+        _queryDeserializer = queryDeserializer;
     }
 
     public IActionResult Index() 
@@ -49,7 +54,7 @@ public class SlackCallbackController : CallbackControllerBase
                     MessageThread = eventRequest.Event.ThreadId,
                     Channel = eventRequest.Event.Channel,
                     Text = eventRequest.Event.Text,
-                });
+                }, SlackCommandType.Mention);
             }
             
         }
@@ -72,11 +77,22 @@ public class SlackCallbackController : CallbackControllerBase
 
         try
         {
-
+            if (!_queryDeserializer.TryDeserialize<SlackCommandControllerRequestModel>(rawRequest, out var eventRequest))
+            {
+                await _defaultChannel.SendMessage($"Could not deserialize command with this raw data: {rawRequest}");
+            }
+            
+            await _commandHandler.RunCommand(new ()
+            {
+                User = eventRequest.UserId,
+                MessageThread = string.Empty,
+                Channel = eventRequest.ChannelId,
+                Text = $"{eventRequest.Command.Substring(1)} {eventRequest.Text}",
+            }, SlackCommandType.Command);
         }
         catch (Exception ex)
         {
-            
+            await _defaultChannel.SendMessage("Exception happened: " + Environment.NewLine + ex);
         }
 
         return Ok();

@@ -7,6 +7,7 @@ public interface ITestSlackCommand : IHelloSlackCommand { }
 public class TestSlackCommand : ITestSlackCommand
 {
     public string CommandName => "test";
+    public SlackCommandType CommandType { get; } = SlackCommandType.Command | SlackCommandType.Mention;
 
     private readonly ISlackDefaultChannel _defaultChannel;
 

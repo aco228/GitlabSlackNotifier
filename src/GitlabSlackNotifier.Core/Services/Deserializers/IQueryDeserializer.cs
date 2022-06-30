@@ -2,5 +2,5 @@
 
 public interface IQueryDeserializer
 {
-    
+    bool TryDeserialize<T>(string input, out T? result);
 }

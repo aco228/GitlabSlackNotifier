@@ -4,7 +4,7 @@ namespace GitlabSlackNotifier.Core.Services.Slack.Applications;
 
 public interface ISlackCommandApplicationHandler
 {
-    Task RunCommand(SlackCommandRequest request);
-    bool GetCommand(string commandName, out ISlackApplicationCommand? command);
+    Task RunCommand(SlackCommandRequest request, SlackCommandType commandType);
+    bool GetCommand(string commandName, SlackCommandType commandType, out ISlackApplicationCommand? command);
     void AddCommand(Type command);
 }

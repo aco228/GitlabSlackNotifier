@@ -8,7 +8,8 @@ public interface IHelloSlackCommand : ISlackApplicationCommand {}
 public class HelloSlackCommand : IHelloSlackCommand
 {
     public string CommandName => "hello";
-    
+    public SlackCommandType CommandType { get; } = SlackCommandType.Command | SlackCommandType.Mention;
+
     private readonly ISlackMessagingClient _messagingClient;
 
     public HelloSlackCommand (ISlackMessagingClient messagingClient)

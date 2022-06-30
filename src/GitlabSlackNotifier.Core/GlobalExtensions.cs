@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Reflection;
+using System.Text;
 
 namespace GitlabSlackNotifier.Core;
 
@@ -14,4 +15,17 @@ public static class GlobalExtensions
 
         return hash.ToString();
     }
+    public static List<(PropertyInfo Info, T? Attribute)> GetPropertyWithAttribute<T>(this Type type) where T : Attribute
+        => type
+            .GetProperties()
+            .Select(x => (Info: x, Attribute: GetAttribute<T>(x)))
+            .Where(x => x.Attribute != default)
+            .ToList();
+
+    private static T? GetAttribute<T>(PropertyInfo info) where T : Attribute
+        => (T?)info
+            .GetCustomAttributes(typeof(T), true)
+            .FirstOrDefault();
+    
+    
 }

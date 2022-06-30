@@ -1,3 +1,4 @@
+using GitlabSlackNotifier.Core;
 using GitlabSlackNotifier.Core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -5,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // builder.Services.AddEndpointsApiExplorer();
 // builder.Services.AddSwaggerGen();
+builder.Services.RegisterDeserializers();
 builder.Services.RegisterConfigurations();
 builder.Services.RegisterSlackServices();
 
