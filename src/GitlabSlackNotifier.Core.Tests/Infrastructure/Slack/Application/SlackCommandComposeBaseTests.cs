@@ -18,7 +18,7 @@ public class SlackCommandComposeBaseTests
     public async Task Should_Parse_Argument_To_ModelObject()
     {
         var service = GetService();
-        var request = new SlackCommandRequest()
+        var request = new SlackCommandRequest
         {
             Channel = "channel",
             Text = "text arg1 arg2 arg3",
@@ -40,6 +40,7 @@ public class SlackCommandComposeBaseTests
         Assert.Equal("Aleksandar", model.Name);
         Assert.Equal(false, model.IsRokoTrue);
         Assert.Equal(default(int), model.Count);
+        Assert.Null(model.Number);
     }
     
     [Fact]
@@ -68,6 +69,38 @@ public class SlackCommandComposeBaseTests
         Assert.Equal("Aleksandar", model.Name);
         Assert.Equal(15, model.Count);
         Assert.Equal(true, model.IsRokoTrue);
+        Assert.Null(model.Number);
+    }
+    
+    
+    [Fact]
+    public async Task Should_Parse_Nullable_Argument()
+    {
+        var service = GetService();
+        var request = new SlackCommandRequest
+        {
+            Channel = "channel",
+            Text = "text arg1 arg2 arg3",
+            User = "user",
+            MessageThread = "ts"
+        };
+        var arguments = new [] {"number=13", "name=Aleksandar", "count=15", "roko=true"};
+
+        await service.Process(request, arguments);
+        
+        _slackMessagingClientMock.Verify(x => x.PublishMessage(It.IsAny<PublishMessageRequest>()), Times.Never);
+        
+        Assert.Equal(2, _collectResultService.Objects.Count);
+        Assert.Equal(request, _collectResultService.Objects[0]);
+        
+        var model = _collectResultService.Objects[1] as DummyCommandComposeModel;
+        Assert.NotNull(model);
+        
+        Assert.Equal("Aleksandar", model.Name);
+        Assert.Equal(15, model.Count);
+        Assert.Equal(true, model.IsRokoTrue);
+        Assert.NotNull(model.Number);
+        Assert.Equal(13, model.Number.Value);
     }
     
     

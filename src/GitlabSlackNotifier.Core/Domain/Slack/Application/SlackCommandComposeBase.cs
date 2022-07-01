@@ -21,35 +21,37 @@ public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackAppli
         try
         {
             if (!GetArgumentProperties(inputArguments, out var arguments))
-                return ReportError(request, "Could not parse arguments");
+                return ReportBackMessage(request, "Could not parse arguments");
 
             var model = Activator.CreateInstance<T>();
             var typeProperties = model.GetType().GetPropertyWithAttribute<CommandPropertyAttribute>() ?? null;
             if (typeProperties == null || typeProperties.Count == 0)
-                return ReportError(request, "Error in command model");
+                return ReportBackMessage(request, "Error in command model");
 
             foreach (var property in typeProperties)
             {
                 if (property.Attribute == null)
-                    return ReportError(request, $"Error in command model (prop={property.Info.Name} has no attribute)");
+                    return ReportBackMessage(request, $"Error in command model (prop={property.Info.Name} has no attribute)");
                 
                 var propValue = arguments.FirstOrDefault(x => x.Name.Equals(property.Attribute.Name));
                 if (propValue == null)
                 {
                     if (property.Attribute.Required)
-                        return ReportError(request, $"Property {property.Attribute.Name} is required to be set");
+                        return ReportBackMessage(request, $"Property {property.Attribute.Name} is required to be set");
 
                     continue;
                 }
                 
                 try
                 {
-                    var propObj = Convert.ChangeType(propValue.Value, property.Info.PropertyType);
+                    var typeToConvert = Nullable.GetUnderlyingType(property.Info.PropertyType) 
+                                        ?? property.Info.PropertyType;
+                    var propObj = Convert.ChangeType(propValue.Value, typeToConvert);
                     property.Info.SetValue(model, propObj);
                 }
                 catch
                 {
-                    return ReportError(request, $"Could not parse {property.Attribute.Name}={propValue.Value} to type {property.Info.PropertyType.Name}");
+                    return ReportBackMessage(request, $"Could not parse {property.Attribute.Name}={propValue.Value} to type {property.Info.PropertyType.Name}");
                 }
             }
 
@@ -57,7 +59,7 @@ public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackAppli
         }
         catch (Exception ex)
         {
-            return ReportError(request, "Exception parsing arguments");
+            return ReportBackMessage(request, "Exception parsing arguments");
         }
     }
 

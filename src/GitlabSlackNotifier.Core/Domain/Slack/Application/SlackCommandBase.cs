@@ -16,7 +16,7 @@ public abstract class SlackCommandBase : ISlackApplicationCommand
         _serviceProvider = serviceProvider;
     }
 
-    protected Task ReportError(SlackCommandRequest request, string errorMessage)
+    protected Task ReportBackMessage(SlackCommandRequest request, string errorMessage)
     {
         if (!string.IsNullOrEmpty(request.MessageThread))
         {

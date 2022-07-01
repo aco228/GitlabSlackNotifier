@@ -7,6 +7,7 @@ using GitlabSlackNotifier.Core.Infrastructures.Slack;
 using GitlabSlackNotifier.Core.Services.Configuration;
 using GitlabSlackNotifier.Core.Services.Deserializers;
 using GitlabSlackNotifier.Core.Services.Gitlab;
+using GitlabSlackNotifier.Core.Services.LinkExtraction;
 using GitlabSlackNotifier.Core.Services.Slack;
 using GitlabSlackNotifier.Core.Services.Slack.Applications;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,6 +32,9 @@ public static class ServicesExtensions
     {
         service.AddSingleton<IGitlabHttpClient, GitlabHttpClient>();
         service.AddTransient<IGitlabAboutMeService, GitlabAboutMeService>();
+        service.AddTransient<IGitlabProjectsClient, GitlabProjectsClient>();
+        service.AddSingleton<IGitlabProjectsCache, GitlabProjectsCache>();
+        service.AddSingleton<IGitlabLinkExtractor, GitlabLinkExtractor>();
     }
 
     public static void RegisterSlackServices(this IServiceCollection service)
@@ -45,6 +49,7 @@ public static class ServicesExtensions
         service.AddTransient<IHelloSlackCommand, HelloSlackCommand>();
         service.AddTransient<ITestSlackCommand, TestSlackCommand>();
         service.AddTransient<ISlackTestReadMessagesCommand, SlackTestReadMessagesCommand>();
+        service.AddTransient<IReportPullRequestsCommand, ReportPullRequestsCommand>();
     }
     
 }

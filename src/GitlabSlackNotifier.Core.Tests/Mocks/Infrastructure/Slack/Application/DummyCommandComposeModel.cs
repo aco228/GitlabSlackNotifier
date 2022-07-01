@@ -4,6 +4,11 @@ namespace GitlabSlackNotifier.Core.Tests.Mocks.Infrastructure.Slack.Application;
 
 public class DummyCommandComposeModel
 {
+    
+    
+    [CommandProperty("number", Required = false)]
+    public int? Number { get; set; }
+    
     [CommandProperty("name", Required = true)]
     public string Name { get; set; }
     

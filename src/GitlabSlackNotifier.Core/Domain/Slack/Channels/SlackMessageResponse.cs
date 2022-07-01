@@ -12,4 +12,15 @@ public class SlackMessageResponse
     
     [JsonProperty("ts")]
     public string MessageThread { get; set; }
+
+    public DateTime? GetDate()
+    {
+        var split = MessageThread.Split(".");
+        if (!long.TryParse(split[0], out var epoch))
+            return null;
+        
+        var dtDateTime = new DateTime(1970,1,1,0,0,0,0, DateTimeKind.Utc);
+        dtDateTime = dtDateTime.AddSeconds(epoch).ToLocalTime();
+        return dtDateTime;
+    }
 }

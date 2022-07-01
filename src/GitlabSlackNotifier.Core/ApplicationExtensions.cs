@@ -16,5 +16,6 @@ public static class ApplicationExtensions
         slackCommandHandler.AddCommand(typeof(IHelloSlackCommand));
         slackCommandHandler.AddCommand(typeof(ITestSlackCommand));
         slackCommandHandler.AddCommand(typeof(ISlackTestReadMessagesCommand));
+        slackCommandHandler.AddCommand(typeof(IReportPullRequestsCommand));
     }
 }

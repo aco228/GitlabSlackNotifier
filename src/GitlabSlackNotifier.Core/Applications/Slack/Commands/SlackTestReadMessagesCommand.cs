@@ -1,5 +1,4 @@
 ﻿using GitlabSlackNotifier.Core.Domain.Application.Commands;
-using GitlabSlackNotifier.Core.Domain.Slack.Channels;
 using GitlabSlackNotifier.Core.Services.Slack;
 using GitlabSlackNotifier.Core.Services.Slack.Applications;
 
@@ -34,7 +33,7 @@ public class SlackTestReadMessagesCommand : SlackCommandComposeBase<ReadMessages
 
         if (!conversation.Ok)
         {
-            await ReportError(request, $"Could not get info about channel:{model.Channel}");
+            await ReportBackMessage(request, $"Could not get info about channel:{model.Channel}");
             return;
         }
 
@@ -45,7 +44,7 @@ public class SlackTestReadMessagesCommand : SlackCommandComposeBase<ReadMessages
         
         if (!messages.Ok)
         {
-            await ReportError(request, $"Could not read messages from channel:{model.Channel}");
+            await ReportBackMessage(request, $"Could not read messages from channel:{model.Channel}");
             return;
         }
 
