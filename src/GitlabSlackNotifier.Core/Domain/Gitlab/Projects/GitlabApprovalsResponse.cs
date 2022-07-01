@@ -34,8 +34,6 @@ public class GitlabApprovalsResponse
     [JsonIgnore]
     public bool IsStillOpened => State.Equals("opened");
 
-    [JsonIgnore] public bool IsMerged => !MergeStatus.Equals("can_be_merged");
-
 }
 
 public class GitlabUserApprovalsResponse

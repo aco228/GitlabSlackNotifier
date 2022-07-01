@@ -12,6 +12,7 @@ public enum DurationType
 
 public record DurationPeriod
 {
+    public DateTime Now { get; set; } = DateTime.UtcNow;
     public int Value { get; set; }
     public DurationType Type { get; set; }
 }
@@ -61,12 +62,18 @@ public record ReportPullRequestCommandModel
 
 public static class ReportPullRequestCommandModelExtensions
 {
-    public static bool IsDateInPeriod(this DurationPeriod period, DateTime utcNow, DateTime dateToCompare)
+    public static bool IsDateInPeriod(this DurationPeriod period, DateTime dateToCompare)
     {
         var multiplier = period.Type == DurationType.Weeks ? 7 : 1;
-        var currentDistance = (utcNow - dateToCompare).TotalDays;
+        var currentDistance = (period.Now - dateToCompare).TotalDays;
         var expectedDistance = (period.Value * multiplier);
         var result = currentDistance < expectedDistance;
         return result;
+    }
+
+    public static int GetDayDifference(this DurationPeriod period)
+    {
+        var multiplier = period.Type == DurationType.Weeks ? 7 : 1;
+        return period.Value * multiplier;
     }
 }

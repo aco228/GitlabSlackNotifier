@@ -8,8 +8,11 @@ public class GitlabUserResponse
     public long Id { get; set; }
     
     [JsonProperty("username")]
-    public string username { get; set; }
+    public string Username { get; set; }
     
     [JsonProperty("name")]
-    public string name { get; set; }
+    public string Name { get; set; }
+    
+    [JsonProperty("avatar_url")]
+    public string PictureUrl { get; set; }
 }

@@ -60,11 +60,12 @@ public class ReportPullRequestCommandModelTest
         
         var period = new DurationPeriod
         {
+            Now = currentDate,
             Type = type,
             Value = value,
         };
 
-        var result = period.IsDateInPeriod(currentDate, messageDate);
+        var result = period.IsDateInPeriod(messageDate);
         
         Assert.Equal(expectedResult, result);
     }

@@ -27,5 +27,8 @@ public static class GlobalExtensions
             .GetCustomAttributes(typeof(T), true)
             .FirstOrDefault();
     
+    public static string ToSlackLink(this string text, string link)
+        => $"<{link}|{text}>";
+    
     
 }

@@ -12,6 +12,9 @@ public class SlackMessageResponse
     
     [JsonProperty("ts")]
     public string MessageThread { get; set; }
+    
+    [JsonProperty("user")]
+    public string User { get; set; }
 
     public DateTime? GetDate()
     {

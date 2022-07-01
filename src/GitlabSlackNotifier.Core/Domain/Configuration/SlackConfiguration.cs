@@ -4,6 +4,7 @@ namespace GitlabSlackNotifier.Core.Domain.Configuration;
 
 public class SlackConfiguration : IConfigurationModel
 {
+    public string SlackOwner { get; set; }
     public string AppId {get;set;}
     public string ClientId {get;set;}
     public string ClientSecret {get;set;}
@@ -15,5 +16,6 @@ public class SlackConfiguration : IConfigurationModel
         => !string.IsNullOrEmpty(ClientId)
            && !string.IsNullOrEmpty(ClientSecret)
            && !string.IsNullOrEmpty(MainChannelId)
-           && !string.IsNullOrEmpty(OAuth);
+           && !string.IsNullOrEmpty(OAuth)
+           && !string.IsNullOrEmpty(SlackOwner);
 }

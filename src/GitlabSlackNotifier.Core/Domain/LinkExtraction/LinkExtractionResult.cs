@@ -2,7 +2,10 @@
 
 public record LinkExtractionResult
 {
-    public string Name { get; set; }
-    public int Value { get; set; }
+    public string ProjectName { get; set; }
+    public int PullRequestId { get; set; }
     public string RawValue { get; set; }
+    public string Author { get; set; }
+    public string OriginalThreadId { get; set; }
+    public DateTime Created { get; set; }
 }

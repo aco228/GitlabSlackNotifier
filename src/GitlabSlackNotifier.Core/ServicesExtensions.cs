@@ -34,22 +34,25 @@ public static class ServicesExtensions
         service.AddTransient<IGitlabAboutMeService, GitlabAboutMeService>();
         service.AddTransient<IGitlabProjectsClient, GitlabProjectsClient>();
         service.AddSingleton<IGitlabProjectsCache, GitlabProjectsCache>();
-        service.AddSingleton<IGitlabLinkExtractor, GitlabLinkExtractor>();
+        service.AddSingleton<IGitlabSlackLinkExtractor, GitlabSlackLinkExtractor>();
     }
 
     public static void RegisterSlackServices(this IServiceCollection service)
     {
         service.AddSingleton<ISlackHttpClient, SlackHttpClient>();
         service.AddSingleton<ISlackCommandApplicationHandler, SlackCommandApplicationHandler>();
+        service.AddSingleton<ISlackUserCache, SlackUserCache>();
         
         service.AddTransient<ISlackMessagingClient, SlackMessagingClient>();
         service.AddTransient<ISlackConversationClient, SlackConversationClient>();
         service.AddTransient<ISlackDefaultChannel, SlackDefaultChannel>();
+        service.AddTransient<ISlackUserClient, SlackUserClient>();
 
         service.AddTransient<IHelloSlackCommand, HelloSlackCommand>();
         service.AddTransient<ITestSlackCommand, TestSlackCommand>();
         service.AddTransient<ISlackTestReadMessagesCommand, SlackTestReadMessagesCommand>();
         service.AddTransient<IReportPullRequestsCommand, ReportPullRequestsCommand>();
+        
     }
     
 }

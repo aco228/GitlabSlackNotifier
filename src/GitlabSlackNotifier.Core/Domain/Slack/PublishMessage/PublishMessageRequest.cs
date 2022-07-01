@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using GitlabSlackNotifier.Core.Domain.Slack.Blocks.Core;
+using Newtonsoft.Json;
 
 namespace GitlabSlackNotifier.Core.Domain.Slack;
 
@@ -18,4 +19,7 @@ public record PublishMessageRequest
     
     [JsonProperty("unfurl_links")]
     public bool UnfurLinks { get; set; } = false;
+    
+    [JsonProperty("blocks", NullValueHandling = NullValueHandling.Ignore)]
+    public List<BlockBase> Blocks { get; set; }
 }
