@@ -1,5 +1,4 @@
 ﻿using GitlabSlackNotifier.Core.Domain;
-using GitlabSlackNotifier.Core.Domain.Application.Commands;
 using GitlabSlackNotifier.Core.Domain.Slack.Application;
 using GitlabSlackNotifier.Core.Domain.Slack.ControllerEvents;
 using GitlabSlackNotifier.Core.Services.Deserializers;
@@ -14,7 +13,6 @@ namespace GitlabSlackNotifier.Api.Controllers;
 public class SlackCallbackController : CallbackControllerBase
 {
     private readonly ILogger<SlackCallbackController> _logger;
-    private readonly ISlackMessagingClient _messageClient;
     private readonly ISlackCommandApplicationHandler _commandHandler;
     private readonly ISlackDefaultChannel _defaultChannel;
     private readonly IQueryDeserializer _queryDeserializer;
@@ -47,18 +45,18 @@ public class SlackCallbackController : CallbackControllerBase
         
         try
         {
-            // Reacts on messages where @ReleaseGuy is mentioned in the message
+            // Reacts on messages where @GitlabSlackNotifier is mentioned in the message
             // Used for automatic releases
             var eventRequest = JsonConvert.DeserializeObject<EventUponMessageRequestModel>(rawRequest);
             if (eventRequest.IsValid())
             {
-                await _commandHandler.RunCommand(new ()
+                Task.Run(() => _commandHandler.RunCommand(new ()
                 {
                     User = eventRequest.Event.User,
                     MessageThread = eventRequest.Event.ThreadId,
                     Channel = eventRequest.Event.Channel,
                     Text = eventRequest.Event.Text,
-                }, SlackCommandType.Mention);
+                }, SlackCommandType.Mention).ConfigureAwait(false));
             }
             
         }
@@ -87,14 +85,14 @@ public class SlackCallbackController : CallbackControllerBase
             {
                 await _defaultChannel.SendMessage($"Could not deserialize command with this raw data: {rawRequest}");
             }
-            
-            await _commandHandler.RunCommand(new ()
+
+            Task.Run(() => _commandHandler.RunCommand(new ()
             {
                 User = eventRequest.UserId,
                 MessageThread = string.Empty,
                 Channel = eventRequest.ChannelId,
                 Text = $"{eventRequest.Command.Substring(1)} {eventRequest.Text}",
-            }, SlackCommandType.Command);
+            }, SlackCommandType.Command).ConfigureAwait(false));
         }
         catch (Exception ex)
         {

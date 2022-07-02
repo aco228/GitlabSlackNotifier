@@ -73,10 +73,10 @@ public class ReportPullRequestsCommand :
         }
 
         var slackBlocks = new ReportPullRequestCommandSlackMessage(model);
-
-
-        var links = await GetGitlabLinks(model);
+        var links = await GetGitlabLinks(request, model);
         int foundNonApprovedMRs = 0;
+
+        ReportBackWithLog(request, $"Starting to process {links.Count} links").ConfigureAwait(false);
 
         foreach (var link in links)
         {
@@ -110,13 +110,15 @@ public class ReportPullRequestsCommand :
         await _messagingClient.PublishMessage(new ()
         {
             Blocks = slackBlocks.Blocks,
-            ChannelId = "C03MLTPSGH3", // TODO: take correct channel
+            ChannelId = model.Output ?? "C03MLTPSGH3", // TODO: take correct channel (model.Channel) 
             UnfurLinks = false,
         });
     }
 
 
-    private async Task<List<LinkExtractionResult>> GetGitlabLinks(ReportPullRequestCommandModel model)
+    private async Task<List<LinkExtractionResult>> GetGitlabLinks(
+        SlackCommandRequest request,
+        ReportPullRequestCommandModel model)
     {
         var result = new HashSet<LinkExtractionResult>();
 
@@ -163,7 +165,7 @@ public class ReportPullRequestsCommand :
             conversationRequest.OldestMessageThread = messages.Messages.Last().MessageThread;
         }
 
-        _logger.LogInformation($"Read {messageCount} for channel={model.Channel}");
+        await ReportBackWithLog(request, $"Read {messageCount} for channel={model.Channel}");
         return result.ToList();
     }
 
@@ -184,15 +186,14 @@ public class ReportPullRequestsCommand :
 
         var missingApprovals = slackMessage.Model.Approvals - approvals.ApprovedBy.Count;
         var prInformations = $"Missing *{missingApprovals}* approvals! Submited by: *{slackUser.Profile.display_name}* {link.DaysDifference} days ago";
-        
+
         var messageBody =
-            prInformations 
+            prInformations
             + Environment.NewLine
-            + $"{"Original thread".ToSlackLink(archiveLink)} "
+            + $":thread: {"Original thread".ToSlackLink(archiveLink)} "
             + Environment.NewLine
             + ":point_right:  "
-            + $" Pull request {link.ProjectName}/{link.PullRequestId} ".ToSlackLink(link.RawValue)
-            + "  :point_left:";
+            + $" Pull request {link.ProjectName}/{link.PullRequestId} ".ToSlackLink(link.RawValue);
 
         slackMessage.AddAuthorInformations(messageBody, slackUser);
         slackMessage.AddDivider();

@@ -29,6 +29,11 @@ public record ReportPullRequestCommandModel
         Description =
             "Duration in which will be skipped when processing messages data (1w, 4d, etc. (only w(eeks) or d(days) are supported). Default is `1d`")]
     public string Skip { get; set; } = "1d";
+    
+    [CommandProperty("output",
+        Required = false,
+        Description = "Output channel where result will be printed. Default is the `channel` value")]
+    public string? Output { get; set; }
 
     public bool IsModelValid()
     {
