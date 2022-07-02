@@ -1,10 +1,7 @@
-﻿using System.Text;
-using GitlabSlackNotifier.Core.Domain.Application.Commands;
+﻿using GitlabSlackNotifier.Core.Domain.Application.Commands;
 using GitlabSlackNotifier.Core.Domain.Gitlab.Projects;
 using GitlabSlackNotifier.Core.Domain.LinkExtraction;
 using GitlabSlackNotifier.Core.Domain.Slack.Application;
-using GitlabSlackNotifier.Core.Domain.Slack.Blocks.Core;
-using GitlabSlackNotifier.Core.Domain.Slack.Blocks.Elements;
 using GitlabSlackNotifier.Core.Domain.Slack.Channels;
 using GitlabSlackNotifier.Core.Infrastructures.Configuration;
 using GitlabSlackNotifier.Core.Infrastructures.Gitlab;
@@ -15,9 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace GitlabSlackNotifier.Core.Applications.Slack.Commands;
 
-public interface IReportPullRequestsCommand : ISlackApplicationCommand
-{
-}
+public interface IReportPullRequestsCommand : ISlackApplicationCommand { }
 
 public class ReportPullRequestsCommand :
     SlackCommandComposeBase<ReportPullRequestCommandModel>,
@@ -57,12 +52,13 @@ public class ReportPullRequestsCommand :
         _slackUserCache = slackUserCache;
     }
 
-    protected override async Task Process(SlackCommandRequest request, ReportPullRequestCommandModel model)
+    protected override async Task Process(
+        SlackCommandRequest request, 
+        ReportPullRequestCommandModel model)
     {
-        if (!model.GetDuration(out var period))
+        if (!model.IsModelValid())
         {
-            _logger.LogInformation($"Could not parse duration from string ${model.Duration}");
-            await ReportBackMessage(request, $"Could not parse duration from string ${model.Duration}");
+            await ReportBackWithLog(request, $"Could not parse duration from string ${model.Duration}");
             return;
         }
 
@@ -71,22 +67,14 @@ public class ReportPullRequestsCommand :
 
         if (!channel.Ok)
         {
-            _logger.LogInformation($"Could not find channel {model.Channel}");
-            await ReportBackMessage(request,
-                $"Dont have access to {model.Channel}, maybe I should get invited there first");
+            await ReportBackWithLog(request,$"Dont have access to {model.Channel}, maybe I should get invited there first");
             return;
         }
 
-        var slackBlocks = new List<BlockBase>();
-        slackBlocks.Add(new HeaderElement("MR's without enough approvals"));
-        slackBlocks.Add(new TextSection($"Gone {period.GetDayDifference()} days in past."));
-        slackBlocks.Add(new TextSection(model.Approvals.HasValue
-            ? $"Criteria is that MR has at least {model.Approvals.Value} approvals"
-            : "Criteria is that MR has approvals set by project"));
-        slackBlocks.Add(new Divider());
+        var slackBlocks = new ReportPullRequestCommandSlackMessage(model);
 
 
-        var links = await GetGitlabLinks(model.Channel, period);
+        var links = await GetGitlabLinks(model);
         int foundNonApprovedMRs = 0;
 
         foreach (var link in links)
@@ -97,21 +85,16 @@ public class ReportPullRequestsCommand :
 
             var approvals = await _projectsClient.GetApprovals(project.Id, link.PullRequestId);
 
-            var isApproved = model.Approvals.HasValue
-                ? approvals.ApprovedBy.Count >= model.Approvals.Value
-                : approvals.ApprovalsLeft == 0;
-
             _logger.LogInformation(
                 $"Reading pull request for {project.PathWithNamespace}/{link.PullRequestId} = Approved by {approvals.ApprovedBy.Count} with status={approvals.State} and merge={approvals.MergeStatus}");
 
             if (!approvals.IsStillOpened
                 || approvals.Approved
-                || isApproved)
+                || approvals.ApprovedBy.Count >= model.Approvals)
                 continue;
 
             ++foundNonApprovedMRs;
-            slackBlocks.AddRange(await GetPullRequestBlock(model.Channel, link, approvals,
-                model.Approvals ?? approvals.ApprovalsRequired));
+            await AddSlackReportSectionsForPullRequest(slackBlocks, link, approvals);
             
             _logger.LogInformation($"Project {project.Id} {project.PathWithNamespace}");
         }
@@ -119,24 +102,25 @@ public class ReportPullRequestsCommand :
         if (foundNonApprovedMRs == 0)
         {
             // TODO: Make some report
+            await ReportBackMessage(request, $"Could not find any interesting PR to repoert");
             return;
         }
 
         await _messagingClient.PublishMessage(new ()
         {
-            Blocks = slackBlocks,
+            Blocks = slackBlocks.Blocks,
             ChannelId = "C03MLTPSGH3", // TODO: take correct channel
             UnfurLinks = false,
         });
     }
 
 
-    private async Task<List<LinkExtractionResult>> GetGitlabLinks(string channel, DurationPeriod period)
+    private async Task<List<LinkExtractionResult>> GetGitlabLinks(ReportPullRequestCommandModel model)
     {
         var result = new HashSet<LinkExtractionResult>();
 
         var messageCount = 0;
-        var conversationRequest = new ConversationMessagesRequest { Channel = channel };
+        var conversationRequest = new ConversationMessagesRequest { Channel = model.Channel };
 
         for (;;)
         {
@@ -152,7 +136,16 @@ public class ReportPullRequestsCommand :
             {
                 ++messageCount;
                 var msgDate = msg.GetDate();
-                if (msgDate == null ||  !period.IsDateInPeriod(msgDate.Value))
+                if (msgDate == null)
+                {
+                    timeError = true;
+                    break;
+                }
+                
+                if (model.SkipPeriod.IsDateInPeriod(msgDate.Value))
+                    continue;
+                
+                if (!model.DurationPeriod.IsDateInPeriod(msgDate.Value))
                 {
                     timeError = true;
                     break;
@@ -169,44 +162,44 @@ public class ReportPullRequestsCommand :
             conversationRequest.OldestMessageThread = messages.Messages.Last().MessageThread;
         }
 
-        _logger.LogInformation($"Read {messageCount} for channel={channel}");
+        _logger.LogInformation($"Read {messageCount} for channel={model.Channel}");
         return result.ToList();
     }
 
-    private async Task<List<BlockBase>> GetPullRequestBlock(
-        string channelId,
+    private async Task AddSlackReportSectionsForPullRequest(
+        ReportPullRequestCommandSlackMessage slackMessage,
         LinkExtractionResult link,
-        GitlabApprovalsResponse approvals,
-        int expectedApprovals)
+        GitlabApprovalsResponse approvals)
     {
-        var result = new List<BlockBase>();
-        var days = (int) (DateTime.UtcNow - link.Created).TotalDays;
         var slackUser = await _slackUserCache.GetUser(link.Author);
+        if (slackUser?.Ok == false)
+            return;
         
-        result.Add(new TextSection($"*{approvals.Title}*"));
-
-        var contextSection = new ContextSection();
-        foreach (var approval in approvals.ApprovedBy)
-            contextSection.Elements.Add(new ImageElement(approval.User.PictureUrl, approval.User.Username));
+        slackMessage.AddTitle($"*{approvals.Title}*");
+        slackMessage.AddContextApprovals(approvals);
         
-        contextSection.Elements.Add(new TextElement($" (Got {approvals.ApprovedBy.Count}/{expectedApprovals}) {days} days old"));
-        result.Add(contextSection);
-
         var archiveLink =
-            $"https://{_slackConfiguration.GetConfiguration()!.SlackOwner}/archives/{channelId}/p{link.OriginalThreadId.Replace(".", "")}";
+            $"https://{_slackConfiguration.GetConfiguration()!.SlackOwner}/archives/{slackMessage.Model.Channel}/p{link.OriginalThreadId.Replace(".", "")}";
 
+        var missingApprovals = slackMessage.Model.Approvals - approvals.ApprovedBy.Count;
+        var prInformations = $"Missing *{missingApprovals}* approvals! Submited by: *{slackUser.Profile.display_name}* {link.DaysDifference} days ago";
+        
         var messageBody =
-            $"{slackUser.Profile.display_name} asked in this {"thread".ToSlackLink(archiveLink)} for approval of *{approvals.Title}* and only got {approvals.ApprovedBy.Count} approves."
+            prInformations 
             + Environment.NewLine
-            + $"Find MR at this link " + link.RawValue;
+            + $"{"Original thread".ToSlackLink(archiveLink)} "
+            + Environment.NewLine
+            + ":point_right:  "
+            + $" Pull request {link.ProjectName}/{link.PullRequestId} ".ToSlackLink(link.RawValue)
+            + "  :point_left:";
 
-        
-        if (slackUser != null)
-            result.Add(new ImageSection(messageBody, slackUser.Profile.image_192, slackUser.Profile.display_name));
-        else
-            result.Add(new TextSection(messageBody));
-        
-        result.Add(new Divider());
-        return result;
+        slackMessage.AddAuthorInformations(messageBody, slackUser);
+        slackMessage.AddDivider();
+    }
+
+    private Task ReportBackWithLog(SlackCommandRequest request, string message)
+    {
+        _logger.LogInformation(message);
+        return ReportBackMessage(request, message);
     }
 }

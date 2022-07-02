@@ -12,7 +12,7 @@ namespace GitlabSlackNotifier.Api.Controllers;
 [Route("slack-callback/[action]")]
 public class SlackCallbackController : CallbackControllerBase
 {
-    private readonly ISlackMessagingClient _messaging;
+    private readonly ISlackMessagingClient _messageClient;
     private readonly ISlackCommandApplicationHandler _commandHandler;
     private readonly ISlackDefaultChannel _defaultChannel;
     private readonly IQueryDeserializer _queryDeserializer;

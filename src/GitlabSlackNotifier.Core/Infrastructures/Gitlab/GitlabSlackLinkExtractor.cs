@@ -24,8 +24,9 @@ public class GitlabSlackLinkExtractor : IGitlabSlackLinkExtractor
             {
                 entry.ProjectName = match.Groups[2].Value;
                 entry.PullRequestId = pullRequestId;
-                entry.OriginalThreadId = match.Groups[1].Value;
+                entry.OriginalThreadId = input.MessageThread;
                 entry.Author = input.User;
+                entry.RawValue = match.Groups[1].Value;
                 entry.Created = input.GetDate()!.Value;
                 yield return entry;
             }

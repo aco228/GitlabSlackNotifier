@@ -302,3 +302,4 @@ deploy/deploy.bat
 deploy/deploy.bat
 deploy/deploy.bat
 deploy/run.bat
+src/GItlabSlackNotifier.Api/appsettings.Production.json
