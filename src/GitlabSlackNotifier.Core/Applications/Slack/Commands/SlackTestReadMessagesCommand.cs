@@ -10,6 +10,8 @@ public class SlackTestReadMessagesCommand : SlackCommandComposeBase<ReadMessages
 {
     public override string CommandName { get; } = "read_messages";
     public override SlackCommandType CommandType { get; } = SlackCommandType.Mention;
+    
+    public override string Description { get; }
 
     private readonly ISlackMessagingClient _messagingClient;
     private readonly ISlackConversationClient _conversationClient;
@@ -23,7 +25,7 @@ public class SlackTestReadMessagesCommand : SlackCommandComposeBase<ReadMessages
         _messagingClient = messagingClient;
         _conversationClient = conversationClient;
     }
-    
+
     protected override async Task Process(SlackCommandRequest request, ReadMessagesModel model)
     {
         var conversation = await _conversationClient.GetConversation(new ()

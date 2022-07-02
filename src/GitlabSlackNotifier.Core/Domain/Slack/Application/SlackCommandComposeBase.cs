@@ -1,4 +1,5 @@
-﻿using GitlabSlackNotifier.Core.Services.Slack.Applications;
+﻿using System.Text;
+using GitlabSlackNotifier.Core.Services.Slack.Applications;
 using Microsoft.Extensions.Logging;
 
 namespace GitlabSlackNotifier.Core.Domain.Slack.Application;
@@ -8,6 +9,8 @@ public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackAppli
 {
     protected SlackCommandComposeBase(IServiceProvider serviceProvider) 
         : base(serviceProvider) { }
+    
+    public abstract string Description { get; }
     
     private class ArgumentPropertyInfo
     {
@@ -21,6 +24,9 @@ public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackAppli
     {
         try
         {
+            if (inputArguments.First().ToLower().Equals("help"))
+                return PrintHelp(request);
+            
             if (!GetArgumentProperties(inputArguments, out var arguments))
                 return ReportBackMessage(request, "Could not parse arguments");
 
@@ -68,6 +74,32 @@ public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackAppli
             
             return ReportBackMessage(request, "Exception parsing arguments");
         }
+    }
+
+    public async Task PrintHelp(SlackCommandRequest request)
+    {
+        await ReportBackMessage(request, $"Help for command `{CommandName}`");
+        await ReportBackMessage(request, Description);
+        
+        var model = Activator.CreateInstance<T>();
+        var typeProperties = model.GetType().GetPropertyWithAttribute<CommandPropertyAttribute>() ?? null;
+
+        var stringBuilder = new StringBuilder();
+        stringBuilder.Append("Properties for this command" + Environment.NewLine + Environment.NewLine);
+        
+        foreach (var prop in typeProperties)
+        {
+            stringBuilder.Append($"`{prop.Attribute.Name}` ");
+            if(prop.Attribute.Required)
+                stringBuilder.Append($"*REQUIRED* ");
+
+            stringBuilder.Append(Environment.NewLine);
+            stringBuilder.Append(prop.Attribute.Description);
+            stringBuilder.Append(Environment.NewLine);
+            stringBuilder.Append(Environment.NewLine);
+        }
+
+        await ReportBackMessage(request, stringBuilder.ToString());
     }
 
 

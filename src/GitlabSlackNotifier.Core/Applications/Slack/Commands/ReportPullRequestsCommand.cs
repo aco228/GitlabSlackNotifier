@@ -20,6 +20,7 @@ public class ReportPullRequestsCommand :
 {
     public override string CommandName =>  "report";
     public override SlackCommandType CommandType =>  SlackCommandType.Mention;
+    public override string Description { get; } = "Report/remind about gitlab links in channel that are still not approved";
 
     private readonly ILogger<IReportPullRequestsCommand> _logger;
     private readonly ISlackConversationClient _conversationClient;
