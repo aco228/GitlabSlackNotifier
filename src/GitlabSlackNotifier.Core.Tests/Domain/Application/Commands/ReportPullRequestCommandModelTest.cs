@@ -19,12 +19,11 @@ public class ReportPullRequestCommandModelTest
             Channel = "channel",
             Duration = duration
         };
-
-        var result = model.GetDuration(out var period);
         
-        Assert.True(result);
-        Assert.Equal(expectedVal, period.Value);
-        Assert.Equal(expectedType, period.Type);
+        Assert.True(model.IsModelValid());
+        
+        Assert.Equal(expectedVal, model.DurationPeriod.Value);
+        Assert.Equal(expectedType, model.DurationPeriod.Type);
     }
     
     [Theory]
@@ -39,11 +38,9 @@ public class ReportPullRequestCommandModelTest
             Channel = "channel",
             Duration = duration
         };
-
-        var result = model.GetDuration(out var period);
         
-        Assert.False(result);
-        Assert.Null(period);
+        Assert.False(model.IsModelValid());
+        Assert.Null(model.DurationPeriod);
     }
 
     [Theory]

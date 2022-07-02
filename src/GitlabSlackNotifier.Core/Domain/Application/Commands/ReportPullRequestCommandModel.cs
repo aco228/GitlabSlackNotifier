@@ -41,13 +41,4 @@ public record ReportPullRequestCommandModel
 
         return true;
     }
-
-    public bool GetDuration(out DurationPeriod period)
-        => Duration.GetDurationFromString(out period);
-
-    public bool GetSkipPeriod(out DurationPeriod period)
-        => Skip.GetDurationFromString(out period);
-
-    
-
 }
