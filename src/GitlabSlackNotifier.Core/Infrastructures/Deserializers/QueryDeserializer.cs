@@ -7,6 +7,7 @@ public class QueryDeserializer : IQueryDeserializer
 {
     public bool TryDeserialize<T>(string input, out T? result)
     {
+        
         result = default;
         
         var split = input.Trim().Split("&");

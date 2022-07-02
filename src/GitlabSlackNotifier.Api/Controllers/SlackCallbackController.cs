@@ -1,4 +1,5 @@
 ﻿using GitlabSlackNotifier.Core.Domain;
+using GitlabSlackNotifier.Core.Domain.Application.Commands;
 using GitlabSlackNotifier.Core.Domain.Slack.Application;
 using GitlabSlackNotifier.Core.Domain.Slack.ControllerEvents;
 using GitlabSlackNotifier.Core.Services.Deserializers;
@@ -12,17 +13,20 @@ namespace GitlabSlackNotifier.Api.Controllers;
 [Route("slack-callback/[action]")]
 public class SlackCallbackController : CallbackControllerBase
 {
+    private readonly ILogger<SlackCallbackController> _logger;
     private readonly ISlackMessagingClient _messageClient;
     private readonly ISlackCommandApplicationHandler _commandHandler;
     private readonly ISlackDefaultChannel _defaultChannel;
     private readonly IQueryDeserializer _queryDeserializer;
     
     public SlackCallbackController(
+        ILogger<SlackCallbackController> logger,
         ISlackDefaultChannel slackDefaultChannel,
         ISlackCommandApplicationHandler slackCommandApplicationHandler,
         IQueryDeserializer queryDeserializer) 
         : base("slack-callback-controller")
     {
+        _logger = logger;
         _commandHandler = slackCommandApplicationHandler;
         _defaultChannel = slackDefaultChannel;
         _queryDeserializer = queryDeserializer;
@@ -60,7 +64,9 @@ public class SlackCallbackController : CallbackControllerBase
         }
         catch (Exception ex)
         {
-            await _defaultChannel.SendMessage("Exception happened: " + Environment.NewLine + ex);
+            _logger.LogCritical(ex, "Exception on processing slack-callback event");
+            
+            await _defaultChannel.SendMessage("Exception happened on slack-callback event: " + Environment.NewLine + ex);
         }
 
         return Ok();
@@ -92,7 +98,9 @@ public class SlackCallbackController : CallbackControllerBase
         }
         catch (Exception ex)
         {
-            await _defaultChannel.SendMessage("Exception happened: " + Environment.NewLine + ex);
+            _logger.LogCritical(ex, "Exception on processing slack-callback callback");
+            
+            await _defaultChannel.SendMessage("Exception happened on slack-callback command: " + Environment.NewLine + ex);
         }
 
         return Ok();

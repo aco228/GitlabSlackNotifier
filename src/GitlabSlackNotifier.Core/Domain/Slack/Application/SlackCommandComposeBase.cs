@@ -1,4 +1,5 @@
 ﻿using GitlabSlackNotifier.Core.Services.Slack.Applications;
+using Microsoft.Extensions.Logging;
 
 namespace GitlabSlackNotifier.Core.Domain.Slack.Application;
 
@@ -49,8 +50,11 @@ public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackAppli
                     var propObj = Convert.ChangeType(propValue.Value, typeToConvert);
                     property.Info.SetValue(model, propObj);
                 }
-                catch
+                catch(Exception ex)
                 {
+                    var logger = ServiceProvider.GetService(typeof(ILogger<SlackCommandComposeBase<T>>)) as ILogger<SlackCommandComposeBase<T>>;
+                    logger.LogCritical(ex, $"Could not parse {property.Attribute.Name}={propValue.Value} to type {property.Info.PropertyType.Name}");
+                    
                     return ReportBackMessage(request, $"Could not parse {property.Attribute.Name}={propValue.Value} to type {property.Info.PropertyType.Name}");
                 }
             }
@@ -59,6 +63,9 @@ public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackAppli
         }
         catch (Exception ex)
         {
+            var logger = ServiceProvider.GetService(typeof(ILogger<SlackCommandComposeBase<T>>)) as ILogger<SlackCommandComposeBase<T>>;
+            logger.LogCritical(ex, "Exception on processing slack command base");
+            
             return ReportBackMessage(request, "Exception parsing arguments");
         }
     }

@@ -5,22 +5,21 @@ namespace GitlabSlackNotifier.Core.Domain.Slack.Application;
 
 public abstract class SlackCommandBase : ISlackApplicationCommand
 {
-    private readonly IServiceProvider _serviceProvider;
-    
     public abstract string CommandName { get; }
     public abstract SlackCommandType CommandType { get; }
     public abstract Task Process(SlackCommandRequest request, string[] arguments);
+    protected IServiceProvider ServiceProvider { get; private set; }
 
     public SlackCommandBase (IServiceProvider serviceProvider)
     {
-        _serviceProvider = serviceProvider;
+        ServiceProvider = serviceProvider;
     }
 
     protected Task ReportBackMessage(SlackCommandRequest request, string errorMessage)
     {
         if (!string.IsNullOrEmpty(request.MessageThread))
         {
-            var messageClient = _serviceProvider.GetService(typeof(ISlackMessagingClient)) as ISlackMessagingClient;
+            var messageClient = ServiceProvider.GetService(typeof(ISlackMessagingClient)) as ISlackMessagingClient;
             return messageClient.PublishMessage(new()
             {
                 ChannelId = request.Channel,
@@ -29,7 +28,7 @@ public abstract class SlackCommandBase : ISlackApplicationCommand
             });
         }
 
-        var defaultChannel = _serviceProvider.GetService(typeof(ISlackDefaultChannel)) as ISlackDefaultChannel;
+        var defaultChannel = ServiceProvider.GetService(typeof(ISlackDefaultChannel)) as ISlackDefaultChannel;
         return defaultChannel.SendMessage(errorMessage);
     }
 }

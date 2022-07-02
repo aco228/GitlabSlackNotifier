@@ -1,3 +1,4 @@
+using GitlabSlackNotifier.Api.Middleware;
 using GitlabSlackNotifier.Core;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,9 @@ var app = builder.Build();
 
 // app.UseHttpsRedirection();
 app.UseRouting();
+
+app.UseMiddleware<ErrorHandlingMiddleware>();
+
 app.UseAuthorization();
 app.RegisterSlackCommands();
 app.UseEndpoints(endpoints =>
