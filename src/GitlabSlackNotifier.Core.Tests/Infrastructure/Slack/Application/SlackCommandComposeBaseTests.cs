@@ -3,6 +3,7 @@ using GitlabSlackNotifier.Core.Domain.Slack.Application;
 using GitlabSlackNotifier.Core.Services.Slack;
 using GitlabSlackNotifier.Core.Tests.Mocks;
 using GitlabSlackNotifier.Core.Tests.Mocks.Infrastructure.Slack.Application;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace GitlabSlackNotifier.Core.Tests.Infrastructure.Slack.Application;
@@ -11,8 +12,9 @@ public class SlackCommandComposeBaseTests
 {
     private Mock<IServiceProvider> _serviceProviderMock = new ();
     private Mock<ISlackMessagingClient> _slackMessagingClientMock = new ();
-    private CollectResultMockService _collectResultService = new(); 
-    
+    private CollectResultMockService _collectResultService = new();
+    private Mock<ILogger<DummyCommandComposeModel>> _logger = new();
+
 
     [Fact]
     public async Task Should_Parse_Argument_To_ModelObject()
@@ -133,9 +135,14 @@ public class SlackCommandComposeBaseTests
         _collectResultService = new();
 
         _serviceProviderMock.Setup(x => 
-            x.GetService(
-                It.Is<Type>(s => s == typeof(ISlackMessagingClient))))
+                x.GetService(
+                    It.Is<Type>(s => s == typeof(ISlackMessagingClient))))
             .Returns(_slackMessagingClientMock.Object);
+        
+        _serviceProviderMock.Setup(x => 
+                x.GetService(
+                    It.Is<Type>(s => s == typeof(ILogger<DummyCommandComposeModel>))))
+            .Returns(_logger.Object);
         
         var service = new DummySlackCommandCompose(_collectResultService, _serviceProviderMock.Object);
 

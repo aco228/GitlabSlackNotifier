@@ -8,7 +8,7 @@ public class DummySlackCommandCompose : SlackCommandComposeBase<DummyCommandComp
     public override string CommandName { get; } = "dummy";
     public override SlackCommandType CommandType { get; } = SlackCommandType.Mention;
 
-    public override string Description { get; } = "";
+    protected override string Description { get; } = "";
 
     public DummySlackCommandCompose(
         CollectResultMockService collectResultMockService,

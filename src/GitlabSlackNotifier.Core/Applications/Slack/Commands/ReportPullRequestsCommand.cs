@@ -1,6 +1,8 @@
-﻿using GitlabSlackNotifier.Core.Domain.Application.Commands;
+﻿using GitlabSlackNotifier.Core.Domain;
+using GitlabSlackNotifier.Core.Domain.Application.Commands;
 using GitlabSlackNotifier.Core.Domain.Gitlab.Projects;
 using GitlabSlackNotifier.Core.Domain.LinkExtraction;
+using GitlabSlackNotifier.Core.Domain.Slack;
 using GitlabSlackNotifier.Core.Domain.Slack.Application;
 using GitlabSlackNotifier.Core.Domain.Slack.Channels;
 using GitlabSlackNotifier.Core.Infrastructures.Configuration;
@@ -20,7 +22,7 @@ public class ReportPullRequestsCommand :
 {
     public override string CommandName =>  "report";
     public override SlackCommandType CommandType =>  SlackCommandType.Mention;
-    public override string Description { get; } = "Report/remind about gitlab links in channel that are still not approved";
+    protected override string Description { get; } = "Report/remind about gitlab links in channel that are still not approved";
 
     private readonly ILogger<IReportPullRequestsCommand> _logger;
     private readonly ISlackConversationClient _conversationClient;
@@ -57,12 +59,6 @@ public class ReportPullRequestsCommand :
         SlackCommandRequest request, 
         ReportPullRequestCommandModel model)
     {
-        if (!model.IsModelValid())
-        {
-            await ReportBackWithLog(request, $"Could not parse duration from string ${model.Duration}");
-            return;
-        }
-
         var channel = await _conversationClient
             .GetConversation(new() { Channel = model.Channel});
 
@@ -73,10 +69,10 @@ public class ReportPullRequestsCommand :
         }
 
         var slackBlocks = new ReportPullRequestCommandSlackMessage(model);
-        var links = await GetGitlabLinks(request, model);
+        var links = await GetGitlabLinks(request, channel.Channel, model);
         int foundNonApprovedMRs = 0;
 
-        ReportBackWithLog(request, $"Starting to process {links.Count} links").ConfigureAwait(false);
+        ReportBackWithLog(request, $"Starting to process {links.Count} gitlab links").ConfigureAwait(false);
 
         foreach (var link in links)
         {
@@ -103,7 +99,7 @@ public class ReportPullRequestsCommand :
         if (foundNonApprovedMRs == 0)
         {
             // TODO: Make some report
-            await ReportBackMessage(request, $"Could not find any interesting PR to repoert");
+            await ReportBackMessage(request, $"Could not find any interesting PR to report");
             return;
         }
 
@@ -115,9 +111,9 @@ public class ReportPullRequestsCommand :
         });
     }
 
-
     private async Task<List<LinkExtractionResult>> GetGitlabLinks(
         SlackCommandRequest request,
+        SlackChannelResponse channel,
         ReportPullRequestCommandModel model)
     {
         var result = new HashSet<LinkExtractionResult>();
@@ -134,27 +130,25 @@ public class ReportPullRequestsCommand :
                 break;
 
             var timeError = false;
-
             foreach (var msg in messages.Messages)
             {
                 ++messageCount;
-                var msgDate = msg.GetDate();
-                if (msgDate == null)
+                if (!msg.GetDate(out var msgDate))
                 {
                     timeError = true;
                     break;
                 }
                 
-                if (model.SkipPeriod.IsDateInPeriod(msgDate.Value))
+                if (model.SkipPeriod.IsDateInPeriod(msgDate))
                     continue;
                 
-                if (!model.DurationPeriod.IsDateInPeriod(msgDate.Value))
+                if (!model.DurationPeriod.IsDateInPeriod(msgDate))
                 {
                     timeError = true;
                     break;
                 }
 
-                foreach (var link in _slackLinkExtractor.ExtractLinks(msg).ToList())
+                foreach (var link in _slackLinkExtractor.ExtractLinks(msg))
                     result.Add(link);
             }
 
@@ -165,7 +159,7 @@ public class ReportPullRequestsCommand :
             conversationRequest.OldestMessageThread = messages.Messages.Last().MessageThread;
         }
 
-        await ReportBackWithLog(request, $"Read {messageCount} for channel={model.Channel}");
+        ReportBackWithLog(request, $"Went through {messageCount} messages for channel={channel.Name}").ConfigureAwait(false);
         return result.ToList();
     }
 
@@ -180,28 +174,21 @@ public class ReportPullRequestsCommand :
         
         slackMessage.AddTitle($"*{approvals.Title}*");
         slackMessage.AddContextApprovals(approvals);
-        
-        var archiveLink =
-            $"https://{_slackConfiguration.GetConfiguration()!.SlackOwner}/archives/{slackMessage.Model.Channel}/p{link.OriginalThreadId.Replace(".", "")}";
+
+        var archiveLink = SlackModelsExtensions.GetArchiveLink(
+            _slackConfiguration.GetConfiguration()!.SlackOwner,
+            slackMessage.Model.Channel, 
+            link.OriginalThreadId);
 
         var missingApprovals = slackMessage.Model.Approvals - approvals.ApprovedBy.Count;
-        var prInformations = $"Missing *{missingApprovals}* approvals! Submited by: *{slackUser.Profile.display_name}* {link.DaysDifference} days ago";
-
+        
         var messageBody =
-            prInformations
-            + Environment.NewLine
-            + $":thread: {"Original thread".ToSlackLink(archiveLink)} "
-            + Environment.NewLine
-            + ":point_right:  "
-            + $" Pull request {link.ProjectName}/{link.PullRequestId} ".ToSlackLink(link.RawValue);
+            $"Missing *{missingApprovals}* approvals! Submited by: *{slackUser!.Profile.display_name}* {link.DaysDifference} days ago" + Environment.NewLine
+            + $"{SlackEmoji.Thread} {"Original thread".ToSlackLink(archiveLink)} " + Environment.NewLine
+            + $"{SlackEmoji.PointRight} Pull request {link.ProjectName}/{link.PullRequestId} ".ToSlackLink(link.RawValue);
 
         slackMessage.AddAuthorInformations(messageBody, slackUser);
         slackMessage.AddDivider();
     }
-
-    private Task ReportBackWithLog(SlackCommandRequest request, string message)
-    {
-        _logger.LogInformation(message);
-        return ReportBackMessage(request, message);
-    }
+    
 }

@@ -2,5 +2,5 @@
 
 public interface IConfigurationManager
 {
-    T GetConfiguration<T>(string configurationKey) where T : IConfigurationModel;
+    T? GetConfiguration<T>(string configurationKey) where T : IConfigurationModel;
 }

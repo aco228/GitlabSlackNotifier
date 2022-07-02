@@ -13,13 +13,16 @@ public class ConfigurationManager : IConfigurationManager
         _configuration = configuration;
     }
 
-    public T GetConfiguration<T>(string configurationKey)
+    public T? GetConfiguration<T>(string configurationKey)
         where T : IConfigurationModel
     {
         var configurationEnvironmentKey = _configuration[$"Environment:{configurationKey}"];
+
+        if (string.IsNullOrEmpty(configurationEnvironmentKey))
+            return default;
         
         if (!string.IsNullOrEmpty(configurationKey) 
-            && EnvironmentConfigurationExists(configurationEnvironmentKey, out T configuration))
+            && EnvironmentConfigurationExists(configurationEnvironmentKey, out T? configuration))
             return configuration!;
 
         return _configuration.GetSection(configurationKey).Get<T>();

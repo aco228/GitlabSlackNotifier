@@ -2,7 +2,7 @@
 
 namespace GitlabSlackNotifier.Core.Tests.Mocks.Infrastructure.Slack.Application;
 
-public class DummyCommandComposeModel
+public class DummyCommandComposeModel : CommandModelBase
 {
     
     
@@ -17,4 +17,9 @@ public class DummyCommandComposeModel
     
     [CommandProperty("roko", Required = false)]
     public bool IsRokoTrue { get; set; }
+
+    public override bool IsValid()
+    {
+        return true;
+    }
 }

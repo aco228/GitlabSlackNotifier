@@ -20,7 +20,7 @@ public class ReportPullRequestCommandModelTest
             Duration = duration
         };
         
-        Assert.True(model.IsModelValid());
+        Assert.True(model.IsValid());
         
         Assert.Equal(expectedVal, model.DurationPeriod.Value);
         Assert.Equal(expectedType, model.DurationPeriod.Type);
@@ -39,7 +39,7 @@ public class ReportPullRequestCommandModelTest
             Duration = duration
         };
         
-        Assert.False(model.IsModelValid());
+        Assert.False(model.IsValid());
         Assert.Null(model.DurationPeriod);
     }
 

@@ -2,5 +2,5 @@
 
 public interface IConfigurationSection<T>
 {
-    T GetConfiguration();
+    T? GetConfiguration();
 }

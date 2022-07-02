@@ -26,4 +26,17 @@ public class SlackMessageResponse
         dtDateTime = dtDateTime.AddSeconds(epoch).ToLocalTime();
         return dtDateTime;
     }
+
+    public bool GetDate(out DateTime result)
+    {
+        result = new DateTime(1970,1,1,0,0,0,0, DateTimeKind.Utc);;
+        
+        var split = MessageThread.Split(".");
+        if (!long.TryParse(split[0], out var epoch))
+            return false;
+        
+        result = result.AddSeconds(epoch).ToLocalTime();
+        return true;
+    }
+    
 }

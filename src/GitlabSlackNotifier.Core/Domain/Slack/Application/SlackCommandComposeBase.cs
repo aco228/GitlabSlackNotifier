@@ -5,12 +5,12 @@ using Microsoft.Extensions.Logging;
 namespace GitlabSlackNotifier.Core.Domain.Slack.Application;
 
 public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackApplicationCommand
-    where T : class, new()
+    where T : CommandModelBase
 {
     protected SlackCommandComposeBase(IServiceProvider serviceProvider) 
         : base(serviceProvider) { }
     
-    public abstract string Description { get; }
+    protected abstract string Description { get; }
     
     private class ArgumentPropertyInfo
     {
@@ -38,13 +38,13 @@ public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackAppli
             foreach (var property in typeProperties)
             {
                 if (property.Attribute == null)
-                    return ReportBackMessage(request, $"Error in command model (prop={property.Info.Name} has no attribute)");
+                    return ReportBackWithLog(request, $"Error in command model (prop={property.Info.Name} has no attribute)");
                 
                 var propValue = arguments.FirstOrDefault(x => x.Name.Equals(property.Attribute.Name));
                 if (propValue == null)
                 {
                     if (property.Attribute.Required)
-                        return ReportBackMessage(request, $"Property {property.Attribute.Name} is required to be set");
+                        return ReportBackWithLog(request, $"Property {property.Attribute.Name} is required to be set");
 
                     continue;
                 }
@@ -60,9 +60,13 @@ public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackAppli
                 {
                     var logger = ServiceProvider.GetService(typeof(ILogger<SlackCommandComposeBase<T>>)) as ILogger<SlackCommandComposeBase<T>>;
                     logger.LogCritical(ex, $"Could not parse {property.Attribute.Name}={propValue.Value} to type {property.Info.PropertyType.Name}");
-                    
                     return ReportBackMessage(request, $"Could not parse {property.Attribute.Name}={propValue.Value} to type {property.Info.PropertyType.Name}");
                 }
+            }
+
+            if (!model.IsValid())
+            {
+                return ReportBackWithLog(request, "Received model is not valid!");
             }
 
             return Process(request, model);
@@ -71,25 +75,33 @@ public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackAppli
         {
             var logger = ServiceProvider.GetService(typeof(ILogger<SlackCommandComposeBase<T>>)) as ILogger<SlackCommandComposeBase<T>>;
             logger.LogCritical(ex, "Exception on processing slack command base");
-            
             return ReportBackMessage(request, "Exception parsing arguments");
         }
     }
+    
+    protected Task ReportBackWithLog(SlackCommandRequest request, string message)
+    {
+        var logger = ServiceProvider.GetService(typeof(ILogger<T>)) as ILogger<T>;
+        logger.LogInformation(message);
+        return ReportBackMessage(request, message);
+    }
 
-    public async Task PrintHelp(SlackCommandRequest request)
+    private async Task PrintHelp(SlackCommandRequest request)
     {
         await ReportBackMessage(request, $"Help for command `{CommandName}`");
         await ReportBackMessage(request, Description);
         
         var model = Activator.CreateInstance<T>();
         var typeProperties = model.GetType().GetPropertyWithAttribute<CommandPropertyAttribute>() ?? null;
+        if (typeProperties == null)
+            throw new ArgumentException($"Could not CommandPropertyAttribute in model type {model.GetType()}");
 
         var stringBuilder = new StringBuilder();
         stringBuilder.Append("Properties for this command" + Environment.NewLine + Environment.NewLine);
         
         foreach (var prop in typeProperties)
         {
-            stringBuilder.Append($"`{prop.Attribute.Name}` ");
+            stringBuilder.Append($"`{prop.Attribute!.Name}` ");
             if(prop.Attribute.Required)
                 stringBuilder.Append($"*REQUIRED* ");
 
@@ -108,7 +120,7 @@ public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackAppli
     /// ar1=val1 arg2=val2 ...
     /// So with that assumption we are parsing them
     /// </summary>
-    private bool GetArgumentProperties(string[] arguments, out List<ArgumentPropertyInfo> result)
+    private static bool GetArgumentProperties(string[] arguments, out List<ArgumentPropertyInfo> result)
     {
         result = new();
         
@@ -130,6 +142,4 @@ public abstract class SlackCommandComposeBase<T> : SlackCommandBase, ISlackAppli
         }
         return true;
     }
-    
-    
 }

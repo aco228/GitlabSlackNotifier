@@ -2,8 +2,9 @@
 
 namespace GitlabSlackNotifier.Core.Domain.Application.Commands;
 
-public class ReadMessagesModel
+public class ReadMessagesModel : CommandModelBase
 {
     [CommandProperty("channel", Required = true)]
     public string Channel { get; set; }
+
 }

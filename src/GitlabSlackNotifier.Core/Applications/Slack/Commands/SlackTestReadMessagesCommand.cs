@@ -6,12 +6,14 @@ namespace GitlabSlackNotifier.Core.Domain.Slack.Application;
 
 public interface ISlackTestReadMessagesCommand : ISlackApplicationCommand { }
 
-public class SlackTestReadMessagesCommand : SlackCommandComposeBase<ReadMessagesModel>, ISlackTestReadMessagesCommand
+public class SlackTestReadMessagesCommand : 
+    SlackCommandComposeBase<ReadMessagesModel>, 
+    ISlackTestReadMessagesCommand
 {
     public override string CommandName { get; } = "read_messages";
     public override SlackCommandType CommandType { get; } = SlackCommandType.Mention;
     
-    public override string Description { get; }
+    protected override string Description { get; }
 
     private readonly ISlackMessagingClient _messagingClient;
     private readonly ISlackConversationClient _conversationClient;

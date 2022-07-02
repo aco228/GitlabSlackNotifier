@@ -7,20 +7,21 @@ public abstract class SlackCommandBase : ISlackApplicationCommand
 {
     public abstract string CommandName { get; }
     public abstract SlackCommandType CommandType { get; }
-    public abstract Task Process(SlackCommandRequest request, string[] arguments);
     protected IServiceProvider ServiceProvider { get; private set; }
+    
+    public abstract Task Process(SlackCommandRequest request, string[] arguments);
 
     public SlackCommandBase (IServiceProvider serviceProvider)
     {
         ServiceProvider = serviceProvider;
     }
 
-    protected Task ReportBackMessage(SlackCommandRequest request, string errorMessage)
+    internal Task ReportBackMessage(SlackCommandRequest request, string errorMessage)
     {
         if (!string.IsNullOrEmpty(request.MessageThread))
         {
             var messageClient = ServiceProvider.GetService(typeof(ISlackMessagingClient)) as ISlackMessagingClient;
-            return messageClient.PublishMessage(new()
+            return messageClient!.PublishMessage(new()
             {
                 ChannelId = request.Channel,
                 Thread = request.MessageThread,
@@ -29,6 +30,6 @@ public abstract class SlackCommandBase : ISlackApplicationCommand
         }
 
         var defaultChannel = ServiceProvider.GetService(typeof(ISlackDefaultChannel)) as ISlackDefaultChannel;
-        return defaultChannel.SendMessage(errorMessage);
+        return defaultChannel!.SendMessage(errorMessage);
     }
 }

@@ -16,6 +16,6 @@ public abstract class ConfigurationSectionBase<T> : IConfigurationSection<T>
         _configurationManager = configurationManager;
     }
 
-    public T GetConfiguration()
+    public T? GetConfiguration()
         => _configurationManager.GetConfiguration<T>(_configurationKey);
 }

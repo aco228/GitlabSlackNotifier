@@ -3,11 +3,11 @@ using Newtonsoft.Json;
 
 namespace GitlabSlackNotifier.Core.Domain.Application.Commands;
 
-
-public record ReportPullRequestCommandModel
+public class ReportPullRequestCommandModel : CommandModelBase
 {
-    public DurationPeriod DurationPeriod { get; private set; }
-    public DurationPeriod SkipPeriod { get; private set; }
+    public DurationPeriod? DurationPeriod { get; private set; }
+    public DurationPeriod? SkipPeriod { get; private set; }
+    
     
     [CommandProperty("channel", 
         Required = true, 
@@ -35,7 +35,7 @@ public record ReportPullRequestCommandModel
         Description = "Output channel where result will be printed. Default is the `channel` value")]
     public string? Output { get; set; }
 
-    public bool IsModelValid()
+    public override bool IsValid()
     {
         if (!Duration.GetDurationFromString(out var durationPeriod)
             || !Skip.GetDurationFromString(out var skipPeriod))
