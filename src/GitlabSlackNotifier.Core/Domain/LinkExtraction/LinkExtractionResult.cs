@@ -2,8 +2,10 @@
 
 public record LinkExtractionResult
 {
-    private int? _daysDiffence = null;
+    private int? _daysDifference = null;
     
+    public string Key => $"{ProjectName}/{PullRequestId}";
+
     public string ProjectName { get; set; }
     public int PullRequestId { get; set; }
     public string RawValue { get; set; }
@@ -15,11 +17,11 @@ public record LinkExtractionResult
     {
         get
         {
-            if (_daysDiffence.HasValue)
-                return _daysDiffence.Value;
+            if (_daysDifference.HasValue)
+                return _daysDifference.Value;
 
-            _daysDiffence = (int)(DateTime.UtcNow - Created).TotalDays;
-            return _daysDiffence.Value;
+            _daysDifference = (int)(DateTime.UtcNow - Created).TotalDays;
+            return _daysDifference.Value;
         }
     }
 }

@@ -12,13 +12,12 @@ public class ReportPullRequestCommandSlackMessage
     public ReportPullRequestCommandModel Model { get; private set; }
     public List<BlockBase> Blocks { get; private set; }
     
-    public ReportPullRequestCommandSlackMessage(ReportPullRequestCommandModel model)
+    public ReportPullRequestCommandSlackMessage(
+        ReportPullRequestCommandModel model)
     {
         Model = model;
         Blocks = new List<BlockBase>();
         Blocks.Add(new HeaderElement("MR's without enough approvals"));
-        Blocks.Add(new TextSection($"Gone {model.DurationPeriod.GetDayDifference()} days in past."));
-        Blocks.Add(new TextSection($"Criteria is that MR has at least {model.Approvals} approvals"));
         Blocks.Add(new Divider());
     }
 
@@ -47,5 +46,16 @@ public class ReportPullRequestCommandSlackMessage
     public void AddDivider()
     {
         Blocks.Add(new Divider());
+    }
+
+    public void OnTheEnd()
+    {
+        var context = new ContextSection();
+        context.Elements.Add(
+            new TextElement($"I read {Model.Output_MessagesRead} messages, " +
+                            $"and checked {Model.Output_LinksRead} links for past {Model.DurationPeriod!.GetDayDifference()} days, " +
+                            $"with criteria that MR has at least {Model.Approvals} approvals"));
+        
+        Blocks.Add(context);        
     }
 }

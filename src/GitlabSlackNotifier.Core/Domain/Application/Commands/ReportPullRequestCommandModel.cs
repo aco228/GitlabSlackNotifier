@@ -1,5 +1,4 @@
 ﻿using GitlabSlackNotifier.Core.Domain.Slack.Application;
-using Newtonsoft.Json;
 
 namespace GitlabSlackNotifier.Core.Domain.Application.Commands;
 
@@ -34,6 +33,9 @@ public class ReportPullRequestCommandModel : CommandModelBase
         Required = false,
         Description = "Output channel where result will be printed. Default is the `channel` value")]
     public string? Output { get; set; }
+
+    public int Output_MessagesRead { get; set; } = 0;
+    public int Output_LinksRead { get; set; } = 0;
 
     public override bool IsValid()
     {

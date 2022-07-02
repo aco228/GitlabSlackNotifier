@@ -68,11 +68,11 @@ public class ReportPullRequestsCommand :
             return;
         }
 
-        var slackBlocks = new ReportPullRequestCommandSlackMessage(model);
         var links = await GetGitlabLinks(request, channel.Channel, model);
         int foundNonApprovedMRs = 0;
-
         ReportBackWithLog(request, $"Starting to process {links.Count} gitlab links").ConfigureAwait(false);
+        
+        var slackBlocks = new ReportPullRequestCommandSlackMessage(model);
 
         foreach (var link in links)
         {
@@ -102,6 +102,8 @@ public class ReportPullRequestsCommand :
             await ReportBackMessage(request, $"Could not find any interesting PR to report");
             return;
         }
+        
+        slackBlocks.OnTheEnd();
 
         await _messagingClient.PublishMessage(new ()
         {
@@ -116,7 +118,7 @@ public class ReportPullRequestsCommand :
         SlackChannelResponse channel,
         ReportPullRequestCommandModel model)
     {
-        var result = new HashSet<LinkExtractionResult>();
+        var result = new Dictionary<string, LinkExtractionResult>();
 
         var messageCount = 0;
         var conversationRequest = new ConversationMessagesRequest { Channel = model.Channel };
@@ -149,7 +151,8 @@ public class ReportPullRequestsCommand :
                 }
 
                 foreach (var link in _slackLinkExtractor.ExtractLinks(msg))
-                    result.Add(link);
+                    if (!result.ContainsKey(link.Key))
+                        result.Add(link.Key, link);
             }
 
             if (timeError || !messages.HasMore)
@@ -159,8 +162,11 @@ public class ReportPullRequestsCommand :
             conversationRequest.OldestMessageThread = messages.Messages.Last().MessageThread;
         }
 
+        model.Output_MessagesRead = messageCount;
+        model.Output_LinksRead = result.Count;
+        
         ReportBackWithLog(request, $"Went through {messageCount} messages for channel={channel.Name}").ConfigureAwait(false);
-        return result.ToList();
+        return result.Select(x => x.Value).ToList();
     }
 
     private async Task AddSlackReportSectionsForPullRequest(
