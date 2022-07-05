@@ -1,5 +1,4 @@
 using GitlabSlackNotifier.Core.Domain.Gitlab.Projects;
-using GitlabSlackNotifier.Core.Domain.LinkExtraction;
 using GitlabSlackNotifier.Core.Domain.Slack.Blocks.Core;
 using GitlabSlackNotifier.Core.Domain.Slack.Blocks.Elements;
 using GitlabSlackNotifier.Core.Domain.Slack.Users;

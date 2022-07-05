@@ -31,6 +31,7 @@ public class ReportPullRequestsCommand :
     private readonly IGitlabProjectsCache _gitlabProjectsCache;
     private readonly ISlackMessagingClient _messagingClient;
     private readonly ISlackConfigurationSection _slackConfiguration;
+    private readonly IJiraConfigurationSection _jiraConfiguration;
     private readonly ISlackUserCache _slackUserCache;
 
     public ReportPullRequestsCommand(
@@ -42,7 +43,8 @@ public class ReportPullRequestsCommand :
         ISlackMessagingClient messagingClient,
         IServiceProvider serviceProvider,
         ISlackUserCache slackUserCache,
-        ISlackConfigurationSection slackConfigurationSection)
+        ISlackConfigurationSection slackConfigurationSection, 
+        IJiraConfigurationSection jiraConfiguration)
         : base(serviceProvider)
     {
         _logger = logger;
@@ -52,6 +54,7 @@ public class ReportPullRequestsCommand :
         _messagingClient = messagingClient;
         _conversationClient = conversationClient;
         _slackConfiguration = slackConfigurationSection;
+        _jiraConfiguration = jiraConfiguration;
         _slackUserCache = slackUserCache;
     }
 
@@ -141,10 +144,10 @@ public class ReportPullRequestsCommand :
                     break;
                 }
                 
-                if (model.SkipPeriod.IsDateInPeriod(msgDate))
+                if (model.SkipPeriod!.IsDateInPeriod(msgDate))
                     continue;
                 
-                if (!model.DurationPeriod.IsDateInPeriod(msgDate))
+                if (!model.DurationPeriod!.IsDateInPeriod(msgDate))
                 {
                     timeError = true;
                     break;
@@ -177,6 +180,12 @@ public class ReportPullRequestsCommand :
         var slackUser = await _slackUserCache.GetUser(link.Author);
         if (slackUser?.Ok == false)
             return;
+
+        var jiraTicketNotifier = string.Empty;
+        if (approvals.Title.GetJiraTicket(out var jiraTicket))
+            jiraTicketNotifier =
+                $"{SlackEmoji.Jira} {$"Jira {jiraTicket}".ToSlackLink(_jiraConfiguration.ConstructUrl(jiraTicket))} " 
+                + Environment.NewLine;
         
         slackMessage.AddTitle($"*{approvals.Title}*");
         slackMessage.AddContextApprovals(approvals);
@@ -189,8 +198,9 @@ public class ReportPullRequestsCommand :
         var missingApprovals = slackMessage.Model.Approvals - approvals.ApprovedBy.Count;
         
         var messageBody =
-            $"Missing *{missingApprovals}* approvals! Submited by: *{slackUser!.Profile.display_name}* {link.DaysDifference} days ago" + Environment.NewLine
+            $"Missing *{missingApprovals}* approvals! Submitted by: *{slackUser!.Profile.display_name}* {link.DaysDifference} days ago" + Environment.NewLine
             + $"{SlackEmoji.Thread} {"Original thread".ToSlackLink(archiveLink)} " + Environment.NewLine
+            + jiraTicketNotifier
             + $"{SlackEmoji.PointRight} Pull request {link.ProjectName}/{link.PullRequestId} ".ToSlackLink(link.RawValue);
 
         slackMessage.AddAuthorInformations(messageBody, slackUser);

@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace GitlabSlackNotifier.Core;
 
@@ -9,12 +10,19 @@ public static class GlobalExtensions
     {
         var crypt = new System.Security.Cryptography.SHA256Managed();
         var hash = new StringBuilder();
-        byte[] crypto = crypt.ComputeHash(Encoding.UTF8.GetBytes(randomString));
+        var crypto = crypt.ComputeHash(Encoding.UTF8.GetBytes(randomString));
         foreach (byte theByte in crypto)
             hash.Append(theByte.ToString("x2"));
-
         return hash.ToString();
     }
+
+    public static bool GetJiraTicket(this string input, out string value)
+    {
+        var match = new Regex(GlobalConstants.Jira.JiraTicketRegex).Match(input);
+        value = match.Success ? match.Value : string.Empty;
+        return match.Success;
+    }
+    
     public static List<(PropertyInfo Info, T? Attribute)> GetPropertyWithAttribute<T>(this Type type) where T : Attribute
         => type
             .GetProperties()

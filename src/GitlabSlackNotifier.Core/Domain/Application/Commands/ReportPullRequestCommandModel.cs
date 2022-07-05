@@ -33,6 +33,11 @@ public class ReportPullRequestCommandModel : CommandModelBase
         Required = false,
         Description = "Output channel where result will be printed. Default is the `channel` value")]
     public string? Output { get; set; }
+    
+    [CommandProperty("owners", 
+        Required = false,
+        Description = "Code owners for the project. Expected format is \"[owner_gitlab_username]:[owner_slackId],[owner_gitlab_username]:[owner_slackId]\"")]
+    public string? CodeOwners { get; set; }
 
     public int Output_MessagesRead { get; set; } = 0;
     public int Output_LinksRead { get; set; } = 0;

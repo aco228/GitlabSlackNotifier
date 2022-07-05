@@ -26,6 +26,7 @@ public static class ServicesExtensions
         service.AddTransient<IConfigurationManager, ConfigurationManager>();
         service.AddTransient<ISlackConfigurationSection, SlackConfigurationSection>();
         service.AddTransient<IGitlabConfigurationSection, GitlabConfigurationSection>();
+        service.AddTransient<IJiraConfigurationSection, JiraConfigurationSection>();
     }
 
     public static void RegisterGitlabServices(this IServiceCollection service)
