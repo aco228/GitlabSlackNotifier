@@ -35,8 +35,14 @@ public static class GlobalExtensions
             .GetCustomAttributes(typeof(T), true)
             .FirstOrDefault();
     
+    #region Slack extensions
+
+    public static string ToSlackUserMention(this string input)
+        => $"<@{input}>";
+    
     public static string ToSlackLink(this string text, string link)
         => $"<{link}|{text}>";
-    
-    
+
+    #endregion
+
 }

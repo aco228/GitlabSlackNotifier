@@ -73,12 +73,15 @@ public class ReportPullRequestsCommand :
 
         var links = await GetGitlabLinks(request, channel.Channel, model);
         int foundNonApprovedMRs = 0;
+        var codeOwnerGitlabUsernames = model.CodeOwners.Select(x => x.GitlabUsername).ToList();
         ReportBackWithLog(request, $"Starting to process {links.Count} gitlab links").ConfigureAwait(false);
         
         var slackBlocks = new ReportPullRequestCommandSlackMessage(model);
 
-        foreach (var link in links)
+        for (var i = links.Count - 1; i >= 0; i--)
         {
+            var link = links[i];
+            
             var project = await _gitlabProjectsCache.GetProjectByNamespace(link.ProjectName);
             if (project == null)
                 continue;
@@ -88,13 +91,17 @@ public class ReportPullRequestsCommand :
             _logger.LogInformation(
                 $"Reading pull request for {project.PathWithNamespace}/{link.PullRequestId} = Approved by {approvals.ApprovedBy.Count} with status={approvals.State} and merge={approvals.MergeStatus}");
 
+            var notApprovedByCodeOwner = 
+                codeOwnerGitlabUsernames.Any() == false || approvals.ApprovedBy.Any(x =>
+                    !codeOwnerGitlabUsernames.Contains(x.User.Username));
+            
             if (!approvals.IsStillOpened
                 || approvals.Approved
-                || approvals.ApprovedBy.Count >= model.Approvals)
+                || (!notApprovedByCodeOwner && approvals.ApprovedBy.Count >= model.Approvals))
                 continue;
 
             ++foundNonApprovedMRs;
-            await AddSlackReportSectionsForPullRequest(slackBlocks, link, approvals);
+            await AddSlackReportSectionsForPullRequest(slackBlocks, link, approvals, model.CodeOwners, notApprovedByCodeOwner);
             
             _logger.LogInformation($"Project {project.Id} {project.PathWithNamespace}");
         }
@@ -111,7 +118,7 @@ public class ReportPullRequestsCommand :
         await _messagingClient.PublishMessage(new ()
         {
             Blocks = slackBlocks.Blocks,
-            ChannelId = model.Output ?? "C03MLTPSGH3", // TODO: take correct channel (model.Channel) 
+            ChannelId = model.Output ?? model.Channel, 
             UnfurLinks = false,
         });
     }
@@ -175,7 +182,9 @@ public class ReportPullRequestsCommand :
     private async Task AddSlackReportSectionsForPullRequest(
         ReportPullRequestCommandSlackMessage slackMessage,
         LinkExtractionResult link,
-        GitlabApprovalsResponse approvals)
+        GitlabApprovalsResponse approvals,
+        List<CodeOwnerModel> codeOwners,
+        bool notApprovedByCodeOwners)
     {
         var slackUser = await _slackUserCache.GetUser(link.Author);
         if (slackUser?.Ok == false)
@@ -196,15 +205,28 @@ public class ReportPullRequestsCommand :
             link.OriginalThreadId);
 
         var missingApprovals = slackMessage.Model.Approvals - approvals.ApprovedBy.Count;
+        var codeOwnersMessage = string.Empty;
         
+        if (notApprovedByCodeOwners)
+        {
+            var approvedByUsernames = approvals.ApprovedBy.Select(x => x.User.Username);
+            codeOwnersMessage = Environment.NewLine + $"{SlackEmoji.TopHat} Missing code owners: ";
+            foreach (var codeOwner in codeOwners.Where(x => !approvedByUsernames.Contains(x.GitlabUsername)))
+            {
+                codeOwnersMessage += codeOwner.SlackId.ToSlackUserMention() + " ";
+                // TODO send private message to slack (maybe?)
+            }
+        }
+
         var messageBody =
-            $"Missing *{missingApprovals}* approvals! Submitted by: *{slackUser!.Profile.display_name}* {link.DaysDifference} days ago" + Environment.NewLine
+            $"Missing *{missingApprovals}* approvals! Submitted by: *{slackUser!.Profile.display_name}* {link.DaysDifference} days ago" +
+            Environment.NewLine
             + $"{SlackEmoji.Thread} {"Original thread".ToSlackLink(archiveLink)} " + Environment.NewLine
             + jiraTicketNotifier
-            + $"{SlackEmoji.PointRight} Pull request {link.ProjectName}/{link.PullRequestId} ".ToSlackLink(link.RawValue);
-
+            + $"{SlackEmoji.PointRight} Pull request {link.ProjectName}/{link.PullRequestId} ".ToSlackLink(link.RawValue)
+            + codeOwnersMessage;
+        
         slackMessage.AddAuthorInformations(messageBody, slackUser);
         slackMessage.AddDivider();
     }
-    
 }

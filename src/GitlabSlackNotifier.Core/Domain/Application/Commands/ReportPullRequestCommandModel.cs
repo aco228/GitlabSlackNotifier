@@ -6,6 +6,7 @@ public class ReportPullRequestCommandModel : CommandModelBase
 {
     public DurationPeriod? DurationPeriod { get; private set; }
     public DurationPeriod? SkipPeriod { get; private set; }
+    public List<CodeOwnerModel> CodeOwners { get; set; } = new ();
     
     
     [CommandProperty("channel", 
@@ -37,19 +38,23 @@ public class ReportPullRequestCommandModel : CommandModelBase
     [CommandProperty("owners", 
         Required = false,
         Description = "Code owners for the project. Expected format is \"[owner_gitlab_username]:[owner_slackId],[owner_gitlab_username]:[owner_slackId]\"")]
-    public string? CodeOwners { get; set; }
+    public string? CodeOwnersInput { get; set; }
 
     public int Output_MessagesRead { get; set; } = 0;
     public int Output_LinksRead { get; set; } = 0;
 
     public override bool IsValid()
     {
+        if (CodeOwnersInput.GetCodeOwnersFromString(out var codeOwners) == CodeOwnerModelConversionResponse.Error)
+            return false;
+        
         if (!Duration.GetDurationFromString(out var durationPeriod)
             || !Skip.GetDurationFromString(out var skipPeriod))
             return false;
 
         DurationPeriod = durationPeriod;
         SkipPeriod = skipPeriod;
+        CodeOwners = codeOwners;
 
         return true;
     }

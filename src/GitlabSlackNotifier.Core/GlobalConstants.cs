@@ -8,4 +8,9 @@ public static class GlobalConstants
         public static string JiraIssuePlaceholder = "[ISSUE]";
         public static string JiraOwnerPlaceHolder = "[OWNER]";
     }
+    
+    public static class Slack
+    {
+        public static string HereMention = "<!here>";
+    }
 }
