@@ -11,6 +11,7 @@ public static class GlobalConstants
     
     public static class Slack
     {
+        public static string ReminderStringStart = "Reminder: ";
         public static string HereMention = "<!here>";
     }
 }

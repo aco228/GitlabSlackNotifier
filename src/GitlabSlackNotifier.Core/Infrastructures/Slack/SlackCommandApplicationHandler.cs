@@ -21,6 +21,9 @@ public class SlackCommandApplicationHandler : ISlackCommandApplicationHandler
     
     public Task RunCommand(SlackCommandRequest request, SlackCommandType commandType)
     {
+        if (request.Text.StartsWith(GlobalConstants.Slack.ReminderStringStart))
+            request.Text = request.Text.Substring(GlobalConstants.Slack.ReminderStringStart.Length);
+        
         var mention = new Regex("<@.+>").Match(request.Text)?.Value ?? string.Empty;
         
         var requestText = request.Text.Trim();
