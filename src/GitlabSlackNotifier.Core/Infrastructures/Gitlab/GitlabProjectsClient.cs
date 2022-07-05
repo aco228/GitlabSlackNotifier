@@ -17,4 +17,7 @@ public class GitlabProjectsClient : IGitlabProjectsClient
 
     public Task<GitlabApprovalsResponse> GetApprovals(long projectId, int mergeRequestId)
         => _client.Get<GitlabApprovalsResponse>($"projects/{projectId}/merge_requests/{mergeRequestId}/approvals");
+
+    public Task<List<GitlabApprovalRulesResponse>?> GetApprovalRules(long projectId, int mergeRequestId)
+        => _client.Get<List<GitlabApprovalRulesResponse>?>($"projects/{projectId}/merge_requests/{mergeRequestId}/approval_rules");
 }

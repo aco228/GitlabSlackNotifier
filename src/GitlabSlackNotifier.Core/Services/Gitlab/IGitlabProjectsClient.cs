@@ -6,4 +6,5 @@ public interface IGitlabProjectsClient
 {
     Task<List<GitlabProjectResponse>> GetProjects(SearchProjectsRequest request);
     Task<GitlabApprovalsResponse> GetApprovals(long projectId, int mergeRequestId);
+    Task<List<GitlabApprovalRulesResponse>?> GetApprovalRules(long projectId, int mergeRequestId);
 }
