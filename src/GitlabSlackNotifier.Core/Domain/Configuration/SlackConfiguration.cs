@@ -4,6 +4,7 @@ namespace GitlabSlackNotifier.Core.Domain.Configuration;
 
 public class SlackConfiguration : IConfigurationModel
 {
+    
     public string SlackOwner { get; set; }
     public string AppId {get;set;}
     public string ClientId {get;set;}

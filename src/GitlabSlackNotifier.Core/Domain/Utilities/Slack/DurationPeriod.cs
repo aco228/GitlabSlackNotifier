@@ -1,4 +1,4 @@
-namespace GitlabSlackNotifier.Core.Domain.Application.Commands;
+namespace GitlabSlackNotifier.Core.Domain.Utilities.Slack;
 
 public enum DurationType
 {
@@ -19,7 +19,7 @@ public static class ReportPullRequestCommandModelExtensions
     public static bool IsDateInPeriod(this DurationPeriod period, DateTime dateToCompare)
     {
         var multiplier = period.Type == DurationType.Weeks ? 7 : 1;
-        var currentDistance = (period.Now - dateToCompare).TotalDays;
+        var currentDistance = (int)(period.Now - dateToCompare).TotalDays;
         var expectedDistance = (period.Value * multiplier);
         var result = currentDistance < expectedDistance;
         return result;

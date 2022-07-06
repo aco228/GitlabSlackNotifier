@@ -1,4 +1,4 @@
-﻿namespace GitlabSlackNotifier.Core.Domain.LinkExtraction;
+﻿namespace GitlabSlackNotifier.Core.Domain.Utilities.Slack;
 
 public record LinkExtractionResult
 {

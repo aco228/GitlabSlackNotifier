@@ -2,6 +2,7 @@ using GitlabSlackNotifier.Core.Domain.Gitlab.Projects;
 using GitlabSlackNotifier.Core.Domain.Slack.Blocks.Core;
 using GitlabSlackNotifier.Core.Domain.Slack.Blocks.Elements;
 using GitlabSlackNotifier.Core.Domain.Slack.Users;
+using GitlabSlackNotifier.Core.Domain.Utilities.Slack;
 
 namespace GitlabSlackNotifier.Core.Domain.Application.Commands;
 

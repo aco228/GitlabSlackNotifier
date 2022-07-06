@@ -1,15 +1,11 @@
-﻿using GitlabSlackNotifier.Core.Domain;
-using GitlabSlackNotifier.Core.Domain.Application.Commands;
-using GitlabSlackNotifier.Core.Domain.Gitlab.Projects;
-using GitlabSlackNotifier.Core.Domain.LinkExtraction;
-using GitlabSlackNotifier.Core.Domain.Slack;
+﻿using GitlabSlackNotifier.Core.Domain.Application.Commands;
 using GitlabSlackNotifier.Core.Domain.Slack.Application;
-using GitlabSlackNotifier.Core.Domain.Slack.Channels;
-using GitlabSlackNotifier.Core.Infrastructures.Configuration;
-using GitlabSlackNotifier.Core.Infrastructures.Gitlab;
+using GitlabSlackNotifier.Core.Domain.Utilities.Slack;
 using GitlabSlackNotifier.Core.Services.Gitlab;
 using GitlabSlackNotifier.Core.Services.Slack;
 using GitlabSlackNotifier.Core.Services.Slack.Applications;
+using GitlabSlackNotifier.Core.Services.Utilities.Gitlab;
+using GitlabSlackNotifier.Core.Services.Utilities.Slack;
 using Microsoft.Extensions.Logging;
 
 namespace GitlabSlackNotifier.Core.Applications.Slack.Commands;
@@ -26,36 +22,30 @@ public class ReportPullRequestsCommand :
 
     private readonly ILogger<IReportPullRequestsCommand> _logger;
     private readonly ISlackConversationClient _conversationClient;
-    private readonly IGitlabSlackLinkExtractor _slackLinkExtractor;
-    private readonly IGitlabProjectsClient _projectsClient;
     private readonly IGitlabProjectsCache _gitlabProjectsCache;
     private readonly ISlackMessagingClient _messagingClient;
-    private readonly ISlackConfigurationSection _slackConfiguration;
-    private readonly IJiraConfigurationSection _jiraConfiguration;
-    private readonly ISlackUserCache _slackUserCache;
+    private readonly IGetSlackMessageLinkUtility _getSlackMessageLinkUtility;
+    private readonly IConstructReportMessageUtility _constructReportMessageUtility;
+    private readonly IGetApprovalRulesUtility _getApprovalRulesUtility;
 
     public ReportPullRequestsCommand(
         ILogger<IReportPullRequestsCommand> logger,
-        IGitlabSlackLinkExtractor slackLinkExtractor,
         IGitlabProjectsCache projectsCache,
-        IGitlabProjectsClient projectsClient,
         ISlackConversationClient conversationClient,
         ISlackMessagingClient messagingClient,
         IServiceProvider serviceProvider,
-        ISlackUserCache slackUserCache,
-        ISlackConfigurationSection slackConfigurationSection, 
-        IJiraConfigurationSection jiraConfiguration)
+        IGetSlackMessageLinkUtility getSlackMessageLinkUtility, 
+        IConstructReportMessageUtility constructReportMessageUtility, 
+        IGetApprovalRulesUtility getApprovalRulesUtility)
         : base(serviceProvider)
     {
         _logger = logger;
-        _slackLinkExtractor = slackLinkExtractor;
         _gitlabProjectsCache = projectsCache;
-        _projectsClient = projectsClient;
         _messagingClient = messagingClient;
         _conversationClient = conversationClient;
-        _slackConfiguration = slackConfigurationSection;
-        _jiraConfiguration = jiraConfiguration;
-        _slackUserCache = slackUserCache;
+        _getSlackMessageLinkUtility = getSlackMessageLinkUtility;
+        _constructReportMessageUtility = constructReportMessageUtility;
+        _getApprovalRulesUtility = getApprovalRulesUtility;
     }
 
     protected override async Task Process(
@@ -71,29 +61,27 @@ public class ReportPullRequestsCommand :
             return;
         }
 
-        var links = await GetGitlabLinks(request, channel.Channel, model);
-        int foundNonApprovedMRs = 0;
-        var codeOwnerGitlabUsernames = model.CodeOwners.Select(x => x.GitlabUsername).ToList();
-        ReportBackWithLog(request, $"Starting to process {links.Count} gitlab links").ConfigureAwait(false);
+        _constructReportMessageUtility.SetState(model.Channel, model.Approvals);
         
-        var slackBlocks = new ReportPullRequestCommandSlackMessage(model);
+        var linksResponse = await _getSlackMessageLinkUtility.GetLinksFromSlackChannel(model.Channel, model.DurationPeriod, model.SkipPeriod);
 
-        for (var i = links.Count - 1; i >= 0; i--)
+        int foundNonApprovedMRs = 0;
+        ReportBackWithLog(request, $"Starting to process {linksResponse.LinkCount} gitlab links").ConfigureAwait(false);
+        
+        for (var i = linksResponse.Links.Count - 1; i >= 0; i--)
         {
-            var link = links[i];
+            var link = linksResponse.Links[i];
             
             var project = await _gitlabProjectsCache.GetProjectByNamespace(link.ProjectName);
             if (project == null)
                 continue;
 
-            var approvals = await _projectsClient.GetApprovals(project.Id, link.PullRequestId);
+            var (approvals, usersApproved) = await _getApprovalRulesUtility.GetPullRequestApprovals(project.Id, link.PullRequestId);
+            var (approvalRules, usersOwners) = await _getApprovalRulesUtility.GetApprovalRulesUsers(project.Id, link.PullRequestId);
 
-            _logger.LogInformation(
-                $"Reading pull request for {project.PathWithNamespace}/{link.PullRequestId} = Approved by {approvals.ApprovedBy.Count} with status={approvals.State} and merge={approvals.MergeStatus}");
+            _logger.LogInformation($"Reading pull request for {project.PathWithNamespace}/{link.PullRequestId} = Approved by {approvals.ApprovedBy.Count} with status={approvals.State} and merge={approvals.MergeStatus}");
 
-            var notApprovedByCodeOwner = 
-                codeOwnerGitlabUsernames.Any() == false || approvals.ApprovedBy.Any(x =>
-                    !codeOwnerGitlabUsernames.Contains(x.User.Username));
+            var notApprovedByCodeOwner = !usersApproved.Any(x => usersOwners.Contains(x));
             
             if (!approvals.IsStillOpened
                 || approvals.Approved
@@ -101,7 +89,13 @@ public class ReportPullRequestsCommand :
                 continue;
 
             ++foundNonApprovedMRs;
-            await AddSlackReportSectionsForPullRequest(slackBlocks, link, approvals, model.CodeOwners, notApprovedByCodeOwner);
+
+            await _constructReportMessageUtility.AddPullRequestSection(
+                link, 
+                usersApproved, 
+                usersOwners, 
+                approvals,
+                notApprovedByCodeOwner);
             
             _logger.LogInformation($"Project {project.Id} {project.PathWithNamespace}");
         }
@@ -113,120 +107,17 @@ public class ReportPullRequestsCommand :
             return;
         }
         
-        slackBlocks.OnTheEnd();
+        _constructReportMessageUtility.OnTheEnd(
+            linksResponse.MessagesRead, 
+            linksResponse.LinkCount, 
+            model.DurationPeriod.GetDayDifference(), 
+            model.Approvals);
 
         await _messagingClient.PublishMessage(new ()
         {
-            Blocks = slackBlocks.Blocks,
+            Blocks = _constructReportMessageUtility.Blocks,
             ChannelId = model.Output ?? model.Channel, 
             UnfurLinks = false,
         });
-    }
-
-    private async Task<List<LinkExtractionResult>> GetGitlabLinks(
-        SlackCommandRequest request,
-        SlackChannelResponse channel,
-        ReportPullRequestCommandModel model)
-    {
-        var result = new Dictionary<string, LinkExtractionResult>();
-
-        var messageCount = 0;
-        var conversationRequest = new ConversationMessagesRequest { Channel = model.Channel };
-
-        for (;;)
-        {
-            var messages = await _conversationClient.GetMessages(conversationRequest);
-
-            if (!messages.Ok
-                || messages.Messages.Count == 0)
-                break;
-
-            var timeError = false;
-            foreach (var msg in messages.Messages)
-            {
-                ++messageCount;
-                if (!msg.GetDate(out var msgDate))
-                {
-                    timeError = true;
-                    break;
-                }
-                
-                if (model.SkipPeriod!.IsDateInPeriod(msgDate))
-                    continue;
-                
-                if (!model.DurationPeriod!.IsDateInPeriod(msgDate))
-                {
-                    timeError = true;
-                    break;
-                }
-
-                foreach (var link in _slackLinkExtractor.ExtractLinks(msg))
-                    if (!result.ContainsKey(link.Key))
-                        result.Add(link.Key, link);
-            }
-
-            if (timeError || !messages.HasMore)
-                break;
-
-            conversationRequest.LatestMessageThread = messages.Messages.First().MessageThread;
-            conversationRequest.OldestMessageThread = messages.Messages.Last().MessageThread;
-        }
-
-        model.Output_MessagesRead = messageCount;
-        model.Output_LinksRead = result.Count;
-        
-        ReportBackWithLog(request, $"Went through {messageCount} messages for channel={channel.Name}").ConfigureAwait(false);
-        return result.Select(x => x.Value).ToList();
-    }
-
-    private async Task AddSlackReportSectionsForPullRequest(
-        ReportPullRequestCommandSlackMessage slackMessage,
-        LinkExtractionResult link,
-        GitlabApprovalsResponse approvals,
-        List<CodeOwnerModel> codeOwners,
-        bool notApprovedByCodeOwners)
-    {
-        var slackUser = await _slackUserCache.GetUser(link.Author);
-        if (slackUser?.Ok == false)
-            return;
-
-        var jiraTicketNotifier = string.Empty;
-        if (approvals.Title.GetJiraTicket(out var jiraTicket))
-            jiraTicketNotifier =
-                $"{SlackEmoji.Jira} {$"Jira {jiraTicket}".ToSlackLink(_jiraConfiguration.ConstructUrl(jiraTicket))} " 
-                + Environment.NewLine;
-        
-        slackMessage.AddTitle($"*{approvals.Title}*");
-        slackMessage.AddContextApprovals(approvals);
-
-        var archiveLink = SlackModelsExtensions.GetArchiveLink(
-            _slackConfiguration.GetConfiguration()!.SlackOwner,
-            slackMessage.Model.Channel, 
-            link.OriginalThreadId);
-
-        var missingApprovals = slackMessage.Model.Approvals - approvals.ApprovedBy.Count;
-        var codeOwnersMessage = string.Empty;
-        
-        if (notApprovedByCodeOwners)
-        {
-            var approvedByUsernames = approvals.ApprovedBy.Select(x => x.User.Username);
-            codeOwnersMessage = Environment.NewLine + $"{SlackEmoji.TopHat} Missing code owners: ";
-            foreach (var codeOwner in codeOwners.Where(x => !approvedByUsernames.Contains(x.GitlabUsername)))
-            {
-                codeOwnersMessage += codeOwner.SlackId.ToSlackUserMention() + " ";
-                // TODO send private message to slack (maybe?)
-            }
-        }
-
-        var messageBody =
-            $"Missing *{missingApprovals}* approvals! Submitted by: *{slackUser!.Profile.display_name}* {link.DaysDifference} days ago" +
-            Environment.NewLine
-            + $"{SlackEmoji.Thread} {"Original thread".ToSlackLink(archiveLink)} " + Environment.NewLine
-            + jiraTicketNotifier
-            + $"{SlackEmoji.PointRight} Pull request {link.ProjectName}/{link.PullRequestId} ".ToSlackLink(link.RawValue)
-            + codeOwnersMessage;
-        
-        slackMessage.AddAuthorInformations(messageBody, slackUser);
-        slackMessage.AddDivider();
     }
 }

@@ -1,12 +1,12 @@
 ﻿using System.Text.RegularExpressions;
-using GitlabSlackNotifier.Core.Domain.LinkExtraction;
 using GitlabSlackNotifier.Core.Domain.Slack.Channels;
+using GitlabSlackNotifier.Core.Domain.Utilities.Slack;
 using GitlabSlackNotifier.Core.Services.LinkExtraction;
 
-namespace GitlabSlackNotifier.Core.Infrastructures.Gitlab;
+namespace GitlabSlackNotifier.Core.Infrastructures.Utilities.Gitlab;
 
-public interface IGitlabSlackLinkExtractor : ISlackLinkExtractor { }
-public class GitlabSlackLinkExtractor : IGitlabSlackLinkExtractor
+public interface IGitlabSlackLinkExtractorUtility : ISlackLinkExtractorUtility { }
+public class GitlabSlackLinkExtractorUtility : IGitlabSlackLinkExtractorUtility
 {
     private static string RegexQuery = @"<(https:\/\/gitlab\.com\/(.+)\/-\/merge_requests\/([0-9]+))>?";
     

@@ -12,8 +12,10 @@ builder.Services.AddLogging(b =>
 });
 builder.Services.RegisterDeserializers();
 builder.Services.RegisterConfigurations();
+builder.Services.RegisterPersistency();
 builder.Services.RegisterGitlabServices();
 builder.Services.RegisterSlackServices();
+builder.Services.RegisterUtilities();
 
 var app = builder.Build();
 

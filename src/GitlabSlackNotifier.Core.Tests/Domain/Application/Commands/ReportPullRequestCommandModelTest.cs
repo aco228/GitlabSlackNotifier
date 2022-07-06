@@ -1,4 +1,5 @@
 ﻿using GitlabSlackNotifier.Core.Domain.Application.Commands;
+using GitlabSlackNotifier.Core.Domain.Utilities.Slack;
 
 namespace GitlabSlackNotifier.Core.Tests.Domain.Application.Commands;
 

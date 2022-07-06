@@ -22,7 +22,10 @@ public class SlackCommandApplicationHandler : ISlackCommandApplicationHandler
     public Task RunCommand(SlackCommandRequest request, SlackCommandType commandType)
     {
         if (request.Text.StartsWith(GlobalConstants.Slack.ReminderStringStart))
-            request.Text = request.Text.Substring(GlobalConstants.Slack.ReminderStringStart.Length);
+            request.Text = request.Text.Substring(GlobalConstants.Slack.ReminderStringStart.Length).Trim();
+
+        if (request.Text.EndsWith("."))
+            request.Text = request.Text.Substring(0, request.Text.Length - 1).Trim();
         
         var mention = new Regex("<@.+>").Match(request.Text)?.Value ?? string.Empty;
         
