@@ -1,5 +1,6 @@
 using GitlabSlackNotifier.Api.Middleware;
 using GitlabSlackNotifier.Core;
+using GitlabSlackNotifier.Core.Services.Jira;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,7 @@ builder.Services.RegisterConfigurations();
 builder.Services.RegisterPersistency();
 builder.Services.RegisterGitlabServices();
 builder.Services.RegisterSlackServices();
+builder.Services.RegisterJiraServices();
 builder.Services.RegisterZenQuote();
 builder.Services.RegisterUtilities();
 

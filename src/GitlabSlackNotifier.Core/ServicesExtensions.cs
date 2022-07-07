@@ -3,6 +3,7 @@ using GitlabSlackNotifier.Core.Domain.Slack.Application;
 using GitlabSlackNotifier.Core.Infrastructures.Configuration;
 using GitlabSlackNotifier.Core.Infrastructures.Deserializers;
 using GitlabSlackNotifier.Core.Infrastructures.Gitlab;
+using GitlabSlackNotifier.Core.Infrastructures.Jira;
 using GitlabSlackNotifier.Core.Infrastructures.Persistency;
 using GitlabSlackNotifier.Core.Infrastructures.Slack;
 using GitlabSlackNotifier.Core.Infrastructures.Utilities.Gitlab;
@@ -11,6 +12,7 @@ using GitlabSlackNotifier.Core.Infrastructures.ZenQuotes;
 using GitlabSlackNotifier.Core.Services.Configuration;
 using GitlabSlackNotifier.Core.Services.Deserializers;
 using GitlabSlackNotifier.Core.Services.Gitlab;
+using GitlabSlackNotifier.Core.Services.Jira;
 using GitlabSlackNotifier.Core.Services.LinkExtraction;
 using GitlabSlackNotifier.Core.Services.Persistency;
 using GitlabSlackNotifier.Core.Services.Slack;
@@ -61,6 +63,13 @@ public static class ServicesExtensions
         service.AddTransient<ITestSlackCommand, TestSlackCommand>();
         service.AddTransient<ISlackTestReadMessagesCommand, SlackTestReadMessagesCommand>();
         service.AddTransient<IReportPullRequestsCommand, ReportPullRequestsCommand>();
+    }
+
+    public static void RegisterJiraServices(this IServiceCollection service)
+    {
+        service.AddSingleton<IJiraHttpClient, JiraHttpClient>();
+
+        service.AddTransient<IJiraIssueClient, JiraIssueClient>();
     }
 
     public static void RegisterUtilities(this IServiceCollection service)
