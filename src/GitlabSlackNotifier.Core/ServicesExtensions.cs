@@ -7,6 +7,7 @@ using GitlabSlackNotifier.Core.Infrastructures.Persistency;
 using GitlabSlackNotifier.Core.Infrastructures.Slack;
 using GitlabSlackNotifier.Core.Infrastructures.Utilities.Gitlab;
 using GitlabSlackNotifier.Core.Infrastructures.Utilities.Slack;
+using GitlabSlackNotifier.Core.Infrastructures.ZenQuotes;
 using GitlabSlackNotifier.Core.Services.Configuration;
 using GitlabSlackNotifier.Core.Services.Deserializers;
 using GitlabSlackNotifier.Core.Services.Gitlab;
@@ -16,6 +17,7 @@ using GitlabSlackNotifier.Core.Services.Slack;
 using GitlabSlackNotifier.Core.Services.Slack.Applications;
 using GitlabSlackNotifier.Core.Services.Utilities.Gitlab;
 using GitlabSlackNotifier.Core.Services.Utilities.Slack;
+using GitlabSlackNotifier.Core.Services.ZenQuote;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GitlabSlackNotifier.Core;
@@ -72,6 +74,12 @@ public static class ServicesExtensions
     public static void RegisterPersistency(this IServiceCollection service)
     {
         service.AddSingleton<IUserRepository, ConfigurationUserRepository>();
+    }
+
+    public static void RegisterZenQuote(this IServiceCollection service)
+    {
+        service.AddTransient<IZenQuoteHttpClient, ZenQuotesHttpClient>();
+        service.AddTransient<IZenQuoteRandomClient, ZenQuoteRandomClient>();
     }
     
 }

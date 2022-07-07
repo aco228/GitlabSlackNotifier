@@ -4,6 +4,9 @@ namespace GitlabSlackNotifier.Core.Domain.Slack.Channels;
 
 public class SlackMessageResponse
 {
+    [JsonProperty("bot_id")]
+    public string BotId { get; set; }
+    
     [JsonProperty("type")]
     public string Type { get; set; }
     

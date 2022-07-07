@@ -9,6 +9,7 @@ using GitlabSlackNotifier.Core.Infrastructures.Configuration;
 using GitlabSlackNotifier.Core.Services.Persistency;
 using GitlabSlackNotifier.Core.Services.Slack;
 using GitlabSlackNotifier.Core.Services.Utilities.Slack;
+using GitlabSlackNotifier.Core.Services.ZenQuote;
 
 namespace GitlabSlackNotifier.Core.Infrastructures.Utilities.Slack;
 
@@ -18,34 +19,37 @@ public class ConstructReportMessageUtility : IConstructReportMessageUtility
     private readonly ISlackUserCache _slackUserCache;
     private readonly IJiraConfigurationSection _jiraConfigurationSection;
     private readonly ISlackConfigurationSection _slackConfigurationSection;
+    private readonly ISlackMessagingClient _messagingClient;
+    private readonly IZenQuoteRandomClient _zenQuoteRandomClient;
     
-    public List<BlockBase> Blocks { get; private set; } = new();
-    public string ChannelId { get; set; }
-    public int ApprovalsRequired { get; set; } = -1;
-    
-    
-
-    public void SetState(string channelId, int approvalRequired)
-    {
-        ChannelId = channelId;
-        ApprovalsRequired = approvalRequired;
-        _stateIsSet = true;
-    }
+    private List<BlockBase> Blocks { get; set; } = new();
+    private string ChannelId { get; set; }
+    private string OutputChannelId { get; set; }
+    private int ApprovalsRequired { get; set; } = -1;
 
     public ConstructReportMessageUtility (
         ISlackUserCache slackUserCache, 
         IJiraConfigurationSection jiraConfigurationSection, 
-        ISlackConfigurationSection slackConfigurationSection)
+        ISlackConfigurationSection slackConfigurationSection, 
+        ISlackMessagingClient messagingClient, 
+        IZenQuoteRandomClient zenQuoteRandomClient)
     {
         _slackUserCache = slackUserCache;
         _jiraConfigurationSection = jiraConfigurationSection;
         _slackConfigurationSection = slackConfigurationSection;
-
-        Blocks.Add(new HeaderElement("MR's without enough approvals"));
-        Blocks.Add(new Divider());
+        _messagingClient = messagingClient;
+        _zenQuoteRandomClient = zenQuoteRandomClient;
+    }
+    
+    public void SetState(string channelId, string outputChannelId, int approvalRequired)
+    {
+        ChannelId = channelId;
+        OutputChannelId = outputChannelId;
+        ApprovalsRequired = approvalRequired;
+        _stateIsSet = true;
     }
 
-    public async Task AddPullRequestSection(
+    public async Task SendPullRequestMessageThread(
         LinkExtractionResult link,
         IUserCollection approvedBy,
         IUserCollection codeOwners,
@@ -100,17 +104,36 @@ public class ConstructReportMessageUtility : IConstructReportMessageUtility
         
         AddAuthorInformations(messageBody, slackUser);
         AddDivider();
+
+        await _messagingClient.PublishMessage(new()
+        {
+            Blocks = Blocks,
+            ChannelId = OutputChannelId,
+            UnfurLinks = false
+        });
+        Blocks = new();
     }
 
-    public void OnTheEnd(int messagesRead, int linksCount, int dayDifference, int approvals)
+    public async Task OnTheEnd(int messagesRead, int linksCount, int dayDifference, int approvals)
     {
-        var context = new ContextSection();
-        context.Elements.Add(
-            new TextElement($"I read {messagesRead} messages, " +
-                            $"and checked {linksCount} links for past {dayDifference} days, " +
-                            $"with criteria that MR has at least {approvals} approvals"));
+        var quote = await _zenQuoteRandomClient.GetRandomQuote();
+
+        var message = $"{GlobalConstants.Slack.HereMention} hello there! " +
+                      $"Today I have read *{messagesRead}* messages and checked *{linksCount}* gitlab links for past *{dayDifference}* days, with criteria that MR has at least *{approvals}* approvals, " +
+                      $"which means that you can at least resolve couple of those MR's, as I would not like going through same links each morning. Thanks!";
         
-        Blocks.Add(context);        
+        if(quote != null)
+            message += Environment.NewLine + Environment.NewLine + 
+                       "Here is a random quote I have prepared for you, to motivate you at least a bit:" + Environment.NewLine + Environment.NewLine +
+                       $"> {quote.Text}" + Environment.NewLine +
+                       $" written by `{quote.Author}` ";
+
+        await _messagingClient.PublishMessage(new()
+        {
+            Message = message,
+            ChannelId = OutputChannelId,
+            UnfurLinks = false,
+        });        
     }
     
 

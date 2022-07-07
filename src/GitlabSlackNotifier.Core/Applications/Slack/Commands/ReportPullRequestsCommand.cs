@@ -23,7 +23,6 @@ public class ReportPullRequestsCommand :
     private readonly ILogger<IReportPullRequestsCommand> _logger;
     private readonly ISlackConversationClient _conversationClient;
     private readonly IGitlabProjectsCache _gitlabProjectsCache;
-    private readonly ISlackMessagingClient _messagingClient;
     private readonly IGetSlackMessageLinkUtility _getSlackMessageLinkUtility;
     private readonly IConstructReportMessageUtility _constructReportMessageUtility;
     private readonly IGetApprovalRulesUtility _getApprovalRulesUtility;
@@ -32,7 +31,6 @@ public class ReportPullRequestsCommand :
         ILogger<IReportPullRequestsCommand> logger,
         IGitlabProjectsCache projectsCache,
         ISlackConversationClient conversationClient,
-        ISlackMessagingClient messagingClient,
         IServiceProvider serviceProvider,
         IGetSlackMessageLinkUtility getSlackMessageLinkUtility, 
         IConstructReportMessageUtility constructReportMessageUtility, 
@@ -41,7 +39,6 @@ public class ReportPullRequestsCommand :
     {
         _logger = logger;
         _gitlabProjectsCache = projectsCache;
-        _messagingClient = messagingClient;
         _conversationClient = conversationClient;
         _getSlackMessageLinkUtility = getSlackMessageLinkUtility;
         _constructReportMessageUtility = constructReportMessageUtility;
@@ -61,7 +58,8 @@ public class ReportPullRequestsCommand :
             return;
         }
 
-        _constructReportMessageUtility.SetState(model.Channel, model.Approvals);
+        var outputChannel = model.Output ?? model.Channel;
+        _constructReportMessageUtility.SetState(model.Channel, outputChannel, model.Approvals);
         
         var linksResponse = await _getSlackMessageLinkUtility.GetLinksFromSlackChannel(model.Channel, model.DurationPeriod, model.SkipPeriod);
 
@@ -90,7 +88,7 @@ public class ReportPullRequestsCommand :
 
             ++foundNonApprovedMRs;
 
-            await _constructReportMessageUtility.AddPullRequestSection(
+            await _constructReportMessageUtility.SendPullRequestMessageThread(
                 link, 
                 usersApproved, 
                 usersOwners, 
@@ -107,17 +105,10 @@ public class ReportPullRequestsCommand :
             return;
         }
         
-        _constructReportMessageUtility.OnTheEnd(
+        await _constructReportMessageUtility.OnTheEnd(
             linksResponse.MessagesRead, 
             linksResponse.LinkCount, 
             model.DurationPeriod.GetDayDifference(), 
             model.Approvals);
-
-        await _messagingClient.PublishMessage(new ()
-        {
-            Blocks = _constructReportMessageUtility.Blocks,
-            ChannelId = model.Output ?? model.Channel, 
-            UnfurLinks = false,
-        });
     }
 }

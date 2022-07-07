@@ -42,6 +42,7 @@ public class GetSlackMessageLinksUtility : IGetSlackMessageLinkUtility
             foreach (var msg in messages.Messages)
             {
                 ++messageCount;
+                
                 if (!msg.GetDate(out var msgDate))
                 {
                     timeError = true;
@@ -56,6 +57,9 @@ public class GetSlackMessageLinksUtility : IGetSlackMessageLinkUtility
                     timeError = true;
                     break;
                 }
+                
+                if (!string.IsNullOrEmpty(msg.BotId)) // ignore bots messages
+                    continue;
 
                 foreach (var link in _slackLinkExtractorUtility.ExtractLinks(msg))
                     if (!result.ContainsKey(link.Key))
