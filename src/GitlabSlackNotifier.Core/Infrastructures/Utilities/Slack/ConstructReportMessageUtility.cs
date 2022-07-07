@@ -121,21 +121,23 @@ public class ConstructReportMessageUtility : IConstructReportMessageUtility
 
     public async Task OnTheEnd(int messagesRead, int linksCount, int dayDifference, int approvals)
     {
+        var blocks = new List<BlockBase>();
         var quote = await _zenQuoteRandomClient.GetRandomQuote();
 
-        var message = $"{GlobalConstants.Slack.HereMention} hello there! " +
-                      $"Today I have read *{messagesRead}* messages and checked *{linksCount}* gitlab links for past *{dayDifference}* days, with criteria that MR has at least *{approvals}* approvals, " +
-                      $"which means that you can at least resolve couple of those MR's, as I would not like going through same links each morning. Thanks!";
+        blocks.Add(new TextSection($"{GlobalConstants.Slack.HereMention} hello there! " +
+                                   $"Today I have read *{messagesRead}* messages and checked *{linksCount}* gitlab links for past *{dayDifference}* days, with criteria that MR has at least *{approvals}* approvals, " +
+                                   $"which means that you can at least resolve couple of those MR's, as I would not like going through same links each morning. Thanks!"));
+        
+        blocks.Add(new Divider());
         
         if(quote != null)
-            message += Environment.NewLine + Environment.NewLine + 
-                       "Here is a random quote I have prepared for you, to motivate you at least a bit:" + Environment.NewLine + Environment.NewLine +
-                       $"> {quote.Text}" + Environment.NewLine +
-                       $" written by `{quote.Author}` ";
+            blocks.Add(new TextElement($"Here is a random quote I have prepared for you by {quote.Author}, to motivate you a bit:" 
+                                       + Environment.NewLine + Environment.NewLine 
+                                       + $"> {quote.Text}"));
 
         await _messagingClient.PublishMessage(new()
         {
-            Message = message,
+            Blocks = blocks,
             ChannelId = OutputChannelId,
             UnfurLinks = false,
         });        
