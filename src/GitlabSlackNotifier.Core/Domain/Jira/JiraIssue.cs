@@ -7,6 +7,9 @@ public class JiraIssue
     [JsonToken("id")]
     public int Id { get; set; }
     
+    [JsonToken("key")]
+    public string Key { get; set; }
+    
     [JsonToken("fields.status.id")]
     public int Status { get; set; }
     

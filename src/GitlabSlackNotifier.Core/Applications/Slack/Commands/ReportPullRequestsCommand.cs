@@ -1,4 +1,5 @@
 ﻿using GitlabSlackNotifier.Core.Domain.Application.Commands;
+using GitlabSlackNotifier.Core.Domain.Jira;
 using GitlabSlackNotifier.Core.Domain.Slack.Application;
 using GitlabSlackNotifier.Core.Domain.Utilities.Slack;
 using GitlabSlackNotifier.Core.Infrastructures.Configuration;
@@ -96,16 +97,11 @@ public class ReportPullRequestsCommand :
                 continue;
             
             var containsJiraTicket = approvals.Title.GetJiraTicket(out var jiraTicket);
-            var jiraTicketTitle = string.Empty;
+            JiraIssue? jiraIssue = null;
             if (containsJiraTicket)
             {
-                var issue = await _jiraIssueClient.GetIssue(jiraTicket);
-                jiraTicketTitle = issue?.Title;
-                if (issue == null)
-                {
-                    containsJiraTicket = false;
-                }
-                else if (issue.Status > minimumJiraTicketStatusId)
+                jiraIssue = await _jiraIssueClient.GetIssue(jiraTicket!);
+                if (jiraIssue?.Status > minimumJiraTicketStatusId)
                 {
                     _logger.LogInformation($"Issue {jiraTicket} has status about minimum statusId which is {minimumJiraTicketStatusId}");
                     continue;
@@ -114,14 +110,15 @@ public class ReportPullRequestsCommand :
 
             ++foundNonApprovedMRs;
 
-            await _constructReportMessageUtility.SendPullRequestMessageThread(
-                link, 
-                usersApproved, 
-                usersOwners, 
-                approvals,
-                jiraTicketTitle,
-                notApprovedByCodeOwner,
-                containsJiraTicket);
+            await _constructReportMessageUtility.SendPullRequestMessageThread(new()
+            {
+                Link = link,
+                Approvals = approvals,
+                ApprovedBy = usersApproved,
+                CodeOwners = usersOwners,
+                JiraIssue = jiraIssue,
+                NotApprovedByCodeOwners = notApprovedByCodeOwner,
+            });
             
             _logger.LogInformation($"Project {project.Id} {project.PathWithNamespace}");
         }
@@ -138,6 +135,8 @@ public class ReportPullRequestsCommand :
             linksResponse.LinkCount, 
             model.DurationPeriod.GetDayDifference(), 
             model.Approvals);
+        
+        _logger.LogInformation($"Finished execution for {channel.Channel.Name}");
     }
 
     private int GetMinimumJiraTicketStatusId(string? inputFromModel)

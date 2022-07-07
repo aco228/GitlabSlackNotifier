@@ -46,6 +46,7 @@ public static class ServicesExtensions
         service.AddTransient<IGitlabAboutMeService, GitlabAboutMeService>();
         service.AddTransient<IGitlabProjectsClient, GitlabProjectsClient>();
         service.AddSingleton<IGitlabProjectsCache, GitlabProjectsCache>();
+        service.AddTransient<IGitlabMergeRequestClient, GitlabMergeRequestClient>();
     }
 
     public static void RegisterSlackServices(this IServiceCollection service)

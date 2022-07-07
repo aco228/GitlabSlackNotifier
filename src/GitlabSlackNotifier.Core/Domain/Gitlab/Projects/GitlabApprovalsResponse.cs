@@ -8,7 +8,7 @@ public class GitlabApprovalsResponse
     public int MergeRequestId { get; set; }
     
     [JsonProperty("project_id")]
-    public string ProjectId { get; set; }
+    public long ProjectId { get; set; }
     
     [JsonProperty("title")]
     public string Title { get; set; }
@@ -33,6 +33,9 @@ public class GitlabApprovalsResponse
 
     [JsonIgnore]
     public bool IsStillOpened => State.Equals("opened");
+
+    [JsonIgnore]
+    public bool HasConflicts => new[] {"cannot_be_merged", "cannot_be_merged_recheck"}.Contains(MergeStatus);
 
 }
 

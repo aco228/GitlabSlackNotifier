@@ -1,6 +1,4 @@
-﻿using GitlabSlackNotifier.Core.Domain.Gitlab.Projects;
-using GitlabSlackNotifier.Core.Domain.Utilities.Slack;
-using GitlabSlackNotifier.Core.Services.Persistency;
+﻿using GitlabSlackNotifier.Core.Domain.Application.Commands;
 
 namespace GitlabSlackNotifier.Core.Services.Utilities.Slack;
 
@@ -10,12 +8,5 @@ public interface IConstructReportMessageUtility
 
     Task OnTheEnd(int messagesRead, int linksCount, int dayDifference, int approvals);
 
-    Task SendPullRequestMessageThread(
-        LinkExtractionResult link,
-        IUserCollection approvedBy,
-        IUserCollection codeOwners,
-        GitlabApprovalsResponse approvals,
-        string jiraTitleName,
-        bool notApprovedByCodeOwners,
-        bool containsJiraTicket);
+    Task SendPullRequestMessageThread(ReportMergeRequest request);
 }
