@@ -1,7 +1,9 @@
 ﻿using GitlabSlackNotifier.Core.Domain.Application.Commands;
 using GitlabSlackNotifier.Core.Domain.Slack.Application;
 using GitlabSlackNotifier.Core.Domain.Utilities.Slack;
+using GitlabSlackNotifier.Core.Infrastructures.Configuration;
 using GitlabSlackNotifier.Core.Services.Gitlab;
+using GitlabSlackNotifier.Core.Services.Jira;
 using GitlabSlackNotifier.Core.Services.Slack;
 using GitlabSlackNotifier.Core.Services.Slack.Applications;
 using GitlabSlackNotifier.Core.Services.Utilities.Gitlab;
@@ -26,7 +28,9 @@ public class ReportPullRequestsCommand :
     private readonly IGetSlackMessageLinkUtility _getSlackMessageLinkUtility;
     private readonly IConstructReportMessageUtility _constructReportMessageUtility;
     private readonly IGetApprovalRulesUtility _getApprovalRulesUtility;
-
+    private readonly IJiraIssueClient _jiraIssueClient;
+    private readonly IJiraConfigurationSection _jiraConfigurationSection;
+    
     public ReportPullRequestsCommand(
         ILogger<IReportPullRequestsCommand> logger,
         IGitlabProjectsCache projectsCache,
@@ -34,7 +38,9 @@ public class ReportPullRequestsCommand :
         IServiceProvider serviceProvider,
         IGetSlackMessageLinkUtility getSlackMessageLinkUtility, 
         IConstructReportMessageUtility constructReportMessageUtility, 
-        IGetApprovalRulesUtility getApprovalRulesUtility)
+        IGetApprovalRulesUtility getApprovalRulesUtility, 
+        IJiraIssueClient jiraIssueClient, 
+        IJiraConfigurationSection jiraConfigurationSection)
         : base(serviceProvider)
     {
         _logger = logger;
@@ -43,6 +49,8 @@ public class ReportPullRequestsCommand :
         _getSlackMessageLinkUtility = getSlackMessageLinkUtility;
         _constructReportMessageUtility = constructReportMessageUtility;
         _getApprovalRulesUtility = getApprovalRulesUtility;
+        _jiraIssueClient = jiraIssueClient;
+        _jiraConfigurationSection = jiraConfigurationSection;
     }
 
     protected override async Task Process(
@@ -64,6 +72,7 @@ public class ReportPullRequestsCommand :
         var linksResponse = await _getSlackMessageLinkUtility.GetLinksFromSlackChannel(model.Channel, model.DurationPeriod, model.SkipPeriod);
 
         int foundNonApprovedMRs = 0;
+        int minimumJiraTicketStatusId = GetMinimumJiraTicketStatusId(model.MinimumStatus);
         ReportBackWithLog(request, $"Starting to process {linksResponse.LinkCount} gitlab links").ConfigureAwait(false);
         
         for (var i = linksResponse.Links.Count - 1; i >= 0; i--)
@@ -76,7 +85,7 @@ public class ReportPullRequestsCommand :
 
             var (approvals, usersApproved) = await _getApprovalRulesUtility.GetPullRequestApprovals(project.Id, link.PullRequestId);
             var (approvalRules, usersOwners) = await _getApprovalRulesUtility.GetApprovalRulesUsers(project.Id, link.PullRequestId);
-
+            
             _logger.LogInformation($"Reading pull request for {project.PathWithNamespace}/{link.PullRequestId} = Approved by {approvals.ApprovedBy.Count} with status={approvals.State} and merge={approvals.MergeStatus}");
 
             var notApprovedByCodeOwner = !usersApproved.Any(x => usersOwners.Contains(x));
@@ -85,6 +94,23 @@ public class ReportPullRequestsCommand :
                 || approvals.Approved
                 || (!notApprovedByCodeOwner && approvals.ApprovedBy.Count >= model.Approvals))
                 continue;
+            
+            var containsJiraTicket = approvals.Title.GetJiraTicket(out var jiraTicket);
+            var jiraTicketTitle = string.Empty;
+            if (containsJiraTicket)
+            {
+                var issue = await _jiraIssueClient.GetIssue(jiraTicket);
+                jiraTicketTitle = issue?.Title;
+                if (issue == null)
+                {
+                    containsJiraTicket = false;
+                }
+                else if (issue.Status > minimumJiraTicketStatusId)
+                {
+                    _logger.LogInformation($"Issue {jiraTicket} has status about minimum statusId which is {minimumJiraTicketStatusId}");
+                    continue;
+                }
+            }
 
             ++foundNonApprovedMRs;
 
@@ -93,7 +119,9 @@ public class ReportPullRequestsCommand :
                 usersApproved, 
                 usersOwners, 
                 approvals,
-                notApprovedByCodeOwner);
+                jiraTicketTitle,
+                notApprovedByCodeOwner,
+                containsJiraTicket);
             
             _logger.LogInformation($"Project {project.Id} {project.PathWithNamespace}");
         }
@@ -110,5 +138,12 @@ public class ReportPullRequestsCommand :
             linksResponse.LinkCount, 
             model.DurationPeriod.GetDayDifference(), 
             model.Approvals);
+    }
+
+    private int GetMinimumJiraTicketStatusId(string? inputFromModel)
+    {
+        if (string.IsNullOrEmpty(inputFromModel) || !int.TryParse(inputFromModel, out var inputMinimumStatusId))
+            return _jiraConfigurationSection.GetConfiguration()!.MinimumStatusId;
+        return inputMinimumStatusId;
     }
 }

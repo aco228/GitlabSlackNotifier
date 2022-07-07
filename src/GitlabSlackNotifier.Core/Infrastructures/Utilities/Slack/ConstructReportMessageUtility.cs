@@ -49,12 +49,8 @@ public class ConstructReportMessageUtility : IConstructReportMessageUtility
         _stateIsSet = true;
     }
 
-    public async Task SendPullRequestMessageThread(
-        LinkExtractionResult link,
-        IUserCollection approvedBy,
-        IUserCollection codeOwners,
-        GitlabApprovalsResponse approvals,
-        bool notApprovedByCodeOwners)
+    public async Task SendPullRequestMessageThread(LinkExtractionResult link, IUserCollection approvedBy, IUserCollection codeOwners,
+        GitlabApprovalsResponse approvals, string jiraTitleName, bool notApprovedByCodeOwners, bool containsJiraTicket)
     {
         if (!_stateIsSet)
             throw new ArgumentException("State is not set");
@@ -69,7 +65,7 @@ public class ConstructReportMessageUtility : IConstructReportMessageUtility
                 $"{SlackEmoji.Jira} {$"Jira {jiraTicket}".ToSlackLink(_jiraConfigurationSection.ConstructUrl(jiraTicket))} " 
                 + Environment.NewLine;
                 
-        AddTitle($"*{approvals.Title}*");
+        AddTitle($"*{(string.IsNullOrEmpty(jiraTitleName) ? approvals.Title : jiraTitleName)}*");
         
         if(approvedBy.Count > 0)
             AddContextApprovals(approvals);
@@ -105,12 +101,21 @@ public class ConstructReportMessageUtility : IConstructReportMessageUtility
         AddAuthorInformations(messageBody, slackUser);
         AddDivider();
 
-        await _messagingClient.PublishMessage(new()
+        var message = await _messagingClient.PublishMessage(new()
         {
             Blocks = Blocks,
             ChannelId = OutputChannelId,
             UnfurLinks = false
         });
+        
+        if (!containsJiraTicket)
+            await _messagingClient.PublishMessage(new()
+            {
+                Thread = message.ts,
+                ChannelId = message.channel,
+                Message = $"{link.Author.ToSlackUserMention()} title of the PR does not contain jira ticket reference. Can you please check and fix that?"
+            });
+                
         Blocks = new();
     }
 
@@ -135,7 +140,7 @@ public class ConstructReportMessageUtility : IConstructReportMessageUtility
             UnfurLinks = false,
         });        
     }
-    
+
 
     private void AddTitle(string title)
     {

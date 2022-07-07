@@ -8,7 +8,6 @@ public class ReportPullRequestCommandModel : CommandModelBase
     public DurationPeriod? DurationPeriod { get; private set; }
     public DurationPeriod? SkipPeriod { get; private set; }
     
-    
     [CommandProperty("channel", 
         Required = true, 
         Description = "ChannelId from slack from which it will collect data to process")]
@@ -34,6 +33,11 @@ public class ReportPullRequestCommandModel : CommandModelBase
         Required = false,
         Description = "Output channel where result will be printed. Default is the `channel` value")]
     public string? Output { get; set; }
+    
+    [CommandProperty("minimum_status",
+        Required = false,
+        Description = "Minimum jira status for MR review")]
+    public string? MinimumStatus { get; set; }
 
     public int Output_MessagesRead { get; set; } = 0;
     public int Output_LinksRead { get; set; } = 0;
@@ -46,7 +50,7 @@ public class ReportPullRequestCommandModel : CommandModelBase
 
         DurationPeriod = durationPeriod;
         SkipPeriod = skipPeriod;
-
+        
         return true;
     }
 }

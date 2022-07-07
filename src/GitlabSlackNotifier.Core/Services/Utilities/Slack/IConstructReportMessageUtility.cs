@@ -15,5 +15,7 @@ public interface IConstructReportMessageUtility
         IUserCollection approvedBy,
         IUserCollection codeOwners,
         GitlabApprovalsResponse approvals,
-        bool notApprovedByCodeOwners);
+        string jiraTitleName,
+        bool notApprovedByCodeOwners,
+        bool containsJiraTicket);
 }
